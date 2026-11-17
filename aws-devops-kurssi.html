@@ -137,6 +137,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 0.9rem; }
   nav.toc { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }
   main { padding: 20px; }
 }
+
+.price { background: var(--surface); border: 1px dashed var(--accent); border-radius: 12px; padding: 16px 20px; margin: 20px 0; }
+.price h3 { margin-top: 0; color: var(--accent); }
+.price table { font-size: 0.92rem; }
 </style>
 </head>
 <body>
@@ -146,6 +150,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 0.9rem; }
   <h2>Sisältö</h2>
   <ol>
     <li><a href="#johdanto">Johdanto ja pelisäännöt</a></li>
+    <li><a href="#hinnat">Hinnat ja ilmainen taso</a></li>
     <li><a href="#terraform-perusta">Terraform-perusta</a></li>
     <li><a href="#iam">IAM</a></li>
     <li><a href="#vpc">VPC ja verkko</a></li>
@@ -212,9 +217,75 @@ Koodi ja kuvat: GitHub → GitHub Actions (OIDC) → ECR → ECS</code></pre>
 </div>
 </section>
 
+
+<!-- ============================================================ -->
+<section id="hinnat">
+<h2 class="module-title">Hinnat ja ilmainen taso</h2>
+
+<div class="card">
+<p>Tuntihinta näyttää pieneltä, mutta kuukausi on noin 730 tuntia. Kaikki kuukausihinnat alla on laskettu kaavalla <strong>tuntihinta × 730 h</strong>. Hinnat ovat AWS:n USD-listahintoja, jotka haettiin marraskuussa 2026 julkisista lähteistä. Euro-kurssi vaihtelee, joten tarkista lopullinen summa AWS Pricing Calculatorilla. Fargate-hinnat ovat Pohjois-Virginian (us-east-1) listahintoja, ja Tukholman (eu-north-1) hinnat voivat poiketa niistä hieman.</p>
+</div>
+
+<h3>Ilmainen taso uusilla tileillä</h3>
+<div class="card">
+<p>AWS muutti ilmaisen tason 15.7.2025. Uudet tilit saavat <strong>200 dollarin krediitit</strong>, ja ne voidaan käyttää kuuden kuukauden aikana tai kunnes krediitit loppuvat (sen mukaan, kumpi tulee ensin). Tilityypit:</p>
+<table>
+  <tr><th>Tilityyppi</th><th>Mitä saat</th><th>Huomio</th></tr>
+  <tr><td>Free plan</td><td>Vain aina-ilmaiset palvelut (30+ palvelua, kuukausirajoin)</td><td>RDS, ALB, Fargate ja NAT eivät ole käytettävissä. Tätä kurssia varten tarvitset Paid planin.</td></tr>
+  <tr><td>Paid plan (krediitit)</td><td>Kaikki palvelut ja 200 $ krediitit</td><td>Krediittien jälkeen siirrytään maksulliseen käyttöön automaattisesti.</td></tr>
+  <tr><td>Vanha ilmainen taso (ennen 15.7.2025 luotu tili)</td><td>Aina-ilmaiset palvelut sekä 12 kk ilmaisia tunteja mm. EC2:lle, RDS:lle ja S3:lle</td><td>12 kk kuluttua maksullista. Tarkista tilisi päivämäärä Billing-konsolista.</td></tr>
+</table>
+<div class="warn">
+<p>Ilmaisia kuukausia ei kannata laskea varmana. Aseta laskutushälytys heti ja tarkista Billing-konsolista, kuinka paljon krediittejä on jäljellä.</p>
+</div>
+</div>
+
+<h3>Hinta tunnilta ja kuukaudessa</h3>
+<div class="card">
+<table>
+  <tr><th>Komponentti</th><th>Hinta / tunti</th><th>Hinta / kk (×730 h)</th><th>Huomio</th></tr>
+  <tr><td>ALB (Application Load Balancer)</td><td>0,0225 $</td><td>≈ 16,43 $</td><td>Lisäksi LCU-maksu 0,008 $/LCU-h, eli pienellä liikenteellä noin 6 $/kk</td></tr>
+  <tr><td>NAT Gateway (per AZ)</td><td>0,045 $</td><td>≈ 32,85 $</td><td>Lisäksi 0,045 $ per käsitelty GB. Kaksi AZ:tä = noin 65,70 $/kk</td></tr>
+  <tr><td>Fargate 0,25 vCPU / 0,5 GB</td><td>0,0123 $</td><td>≈ 9,01 $</td><td>Yksi tehtävä</td></tr>
+  <tr><td>Fargate 0,5 vCPU / 1 GB</td><td>0,0247 $</td><td>≈ 18,02 $</td><td>Yksi tehtävä</td></tr>
+  <tr><td>Fargate 1 vCPU / 2 GB</td><td>0,0494 $</td><td>≈ 36,04 $</td><td>Yksi tehtävä</td></tr>
+  <tr><td>RDS db.t4g.micro (single-AZ, Tukholma)</td><td>≈ 0,016 $</td><td>≈ 12 $</td><td>Tukholman hinta on lähteen mukaan halvin Euroopan alueista</td></tr>
+  <tr><td>RDS db.t4g.micro (Multi-AZ)</td><td>≈ 0,033 $</td><td>≈ 24 $</td><td>Tuotannossa suositeltava</td></tr>
+  <tr><td>Julkinen IPv4-osoite</td><td>0,005 $</td><td>≈ 3,65 $</td><td>Koskee kaikkia julkisia IP-osoitteita: EC2, ALB ja Fargate-tehtävät, joille on annettu julkinen IP</td></tr>
+  <tr><td>Route 53 hosted zone</td><td>—</td><td>0,50 $</td><td>Lisäksi 0,40 $ / miljoona kyselyä</td></tr>
+  <tr><td>Secrets Manager (salaisuus)</td><td>—</td><td>0,40 $</td><td>Lisäksi 0,05 $ / 10 000 API-kutsua</td></tr>
+  <tr><td>CloudWatch-hälytys (standard)</td><td>—</td><td>0,10 $</td><td>Ensimmäiset 10 hälytystä aina ilmaisia</td></tr>
+  <tr><td>ECR-tallennus</td><td>—</td><td>noin 0,10 $ / GB</td><td>Pienet imagen koot maksavat vain muutaman sentin</td></tr>
+  <tr><td>S3 Standard (Tukholma)</td><td>—</td><td>0,023 $ / GB</td><td>Lisäksi pyyntöhinnat ja siirto ulos</td></tr>
+  <tr><td>Data transfer out (internet)</td><td>—</td><td>0,09 $ / GB</td><td>Ensimmäiset 100 GB/kk ilmaisia kaikille</td></tr>
+</table>
+</div>
+
+<h3>Kolme kustannusskenaariota</h3>
+<div class="card">
+<table>
+  <tr><th>Skenaario</th><th>Arvio kuukaudessa</th><th>Mitä siihen kuuluu</th></tr>
+  <tr><td>Opiskelu: pystytä, kokeile, tuhoa</td><td>noin 0,09 $/h, eli esim. 3 h ≈ 0,30 $</td><td>ALB, 2 Fargate-tehtävää (0,25 vCPU), RDS single-AZ, IP-osoitteet. Ei NAT:ia.</td></tr>
+  <tr><td>Kurssiversio pyörii kuukauden ajan</td><td>noin 65 $</td><td>Sama kuin yllä × 730 h. Ilman NAT:ia tai Multi-AZ:ta.</td></tr>
+  <tr><td>Tuotantotason versio</td><td>noin 150 $</td><td>2 NAT Gatewayta (65,70 $), Multi-AZ RDS (24 $), ALB (~22 $), 2 Fargate-tehtävää (18 $), IP-osoitteet (~11 $), monitorointi ja salaisuudet (~5 $)</td></tr>
+  <tr><td>Vaihtoehto: EC2 VPS (t3.micro)</td><td>noin 13–15 $</td><td>Instanssi noin 9 $ (arvio, tarkista), 8 GB EBS noin 1 $ ja julkinen IP 3,65 $</td></tr>
+</table>
+<div class="tip">
+<p><strong>Huomaa:</strong> Yleisin kallis virhe on NAT Gateway, joka on päällä vaikka sovellus ei tee mitään. Toinen on se, että julkinen IPv4-osoite maksaa jokaiselle tehtävälle ja ALB:lle erikseen. Kurssiesimerkeissä ECS-tehtävät ovat julkisessa aliverkossa, jolloin NAT:ia ei tarvita, mutta IP-osoitteista tulee pieni lisämaksu.</p>
+</div>
+</div>
+
+<div class="warn">
+<p>Ota aina käyttöön <strong>Budgets</strong>-hälytys ja tarkista Cost Explorer viikoittain. Laskutus näkyy usein vasta päivien viiveellä.</p>
+</div>
+</section>
+
 <!-- ============================================================ -->
 <section id="terraform-perusta">
 <h2 class="module-title">2. Terraform-perusta</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<p>Terraform on ilmainen. Kustannus syntyy vain resursseista, joita se luo. S3-tila on pieni, joten sen kustannus on käytännössä nolla (alle 0,01 $/kk). DynamoDB-lukitus on on-demand-laskutuksella niin kevyt, että se jää ilmaisen tason sisään. Aina-ilmainen DynamoDB-taso on 25 GB ja 25 RCU/WCU.</p>
+</div>
 
 <div class="card">
 <p><span class="label">Mitä se on:</span> Terraform on infrastructure as code (IaC) -työkalu. Kuvaat infrastruktuurin HCL-kielisinä tiedostoina, ja Terraform vertaa kuvausta todelliseen tilaan (state) ja tekee tarvittavat muutokset.</p>
@@ -267,6 +338,9 @@ provider "aws" {
 <!-- ============================================================ -->
 <section id="iam">
 <h2 class="module-title">3. IAM (Identity and Access Management)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<p>IAM-käyttäjät, roolit, ryhmät ja politiikat ovat <strong>ilmaisia</strong>. Maksu tulee vain palveluista, joita roolit käyttävät.</p>
+</div>
 
 <div class="card">
 <p><span class="label">Mitä se on:</span> IAM hallitsee, kuka tai mikä saa tehdä mitä AWS:ssä. Peruskäsitteet ovat käyttäjät (users), ryhmät, roolit (roles) ja politiikat (policies). Politiikka on JSON-dokumentti, joka sallii tai kieltää toimintoja.</p>
@@ -310,6 +384,15 @@ resource "aws_iam_role_policy_attachment" "ecs_execution" {
 <!-- ============================================================ -->
 <section id="vpc">
 <h2 class="module-title">4. VPC ja verkko</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Komponentti</th><th>Hinta</th></tr>
+  <tr><td>VPC, aliverkot, reititystaulut, IGW, Security Groupit</td><td>Ilmaisia</td></tr>
+  <tr><td>NAT Gateway</td><td>0,045 $/h (≈ 32,85 $/kk) + 0,045 $/GB, per AZ</td></tr>
+  <tr><td>Julkinen IPv4</td><td>0,005 $/h (≈ 3,65 $/kk) per osoite</td></tr>
+</table>
+<p>NAT on yleisin piilokulu. Yhden NAT:in pitäminen päällä kuukauden ajan maksaa enemmän kuin koko kurssiesimerkin muu infra.</p>
+</div>
 
 <div class="card">
 <p><span class="label">Mitä se on:</span> VPC (Virtual Private Cloud) on oma eristetty verkkosi AWS:ssä. Sen sisällä on aliverkkoja (subnet), reititystauluja, Internet Gateway (IGW) ja NAT Gateway. Security Group toimii palomuurina resurssin tasolla.</p>
@@ -420,6 +503,9 @@ resource "aws_security_group" "app" {
 <!-- ============================================================ -->
 <section id="ecr">
 <h2 class="module-title">5. ECR (Elastic Container Registry)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<p>Tallennus noin 0,10 $ / GB / kk. Pieni Django- tai FastAPI-image on noin 100–300 MB, joten kustannus on muutama sentti kuukaudessa. Elinkaarisääntö pitää vanhat imaget pois. Siirrot samaan regioniin ECS:ään eivät aiheuta siirtomaksua.</p>
+</div>
 
 <div class="card">
 <p><span class="label">Mitä se on:</span> AWS:n yksityinen Docker-rekisteri. Tallennat siihen sovelluksesi kontti-imagen, ja ECS, Lambda tai EKS hakevat imagen sieltä.</p>
@@ -468,6 +554,15 @@ resource "aws_ecr_lifecycle_policy" "app" {
 <!-- ============================================================ -->
 <section id="secrets">
 <h2 class="module-title">6. Secrets Manager ja SSM Parameter Store</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Palvelu</th><th>Hinta</th><th>Ilmainen taso</th></tr>
+  <tr><td>Secrets Manager</td><td>0,40 $/salaisuus/kk + 0,05 $ / 10 000 API-kutsua</td><td>Ei aina-ilmaista tasoa</td></tr>
+  <tr><td>SSM Parameter Store (Standard)</td><td>Parametri ilmainen, kutsut ilmaisia rajoissa</td><td>Kyllä, Standard-tason parametrit</td></tr>
+  <tr><td>KMS (asiakkaan oma avain)</td><td>1 $/avain/kk</td><td>Ei</td></tr>
+</table>
+<p>Yksi RDS-salasana Secrets Managerissa maksaa 0,40 $/kk. Jos käytät vain yhtä salaisuutta, kustannus on pieni.</p>
+</div>
 
 <div class="card">
 <p><span class="label">Mitä se on:</span> Secrets Manager tallentaa salaisuuksia (salasanat, API-avaimet) salattuna ja kierrättää niitä automaattisesti. SSM Parameter Store on kevyempi vaihtoehto, joka sopii myös ei-salaisille asetuksille.</p>
@@ -504,6 +599,18 @@ resource "aws_secretsmanager_secret" "api_key" {
 <!-- ============================================================ -->
 <section id="rds">
 <h2 class="module-title">7. RDS (Relational Database Service) PostgreSQL</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Komponentti</th><th>Hinta</th></tr>
+  <tr><td>db.t4g.micro single-AZ (Tukholma)</td><td>≈ 0,016 $/h ≈ 12 $/kk</td></tr>
+  <tr><td>db.t4g.micro Multi-AZ</td><td>≈ 0,033 $/h ≈ 24 $/kk</td></tr>
+  <tr><td>db.t4g.medium single-AZ</td><td>≈ 47 $/kk (lähteen mukaan)</td></tr>
+  <tr><td>gp3-tallennus</td><td>noin 0,115 $/GB/kk, eli 20 GB ≈ 2,30 $</td></tr>
+  <tr><td>Varmuuskopiotallennus</td><td>Ilmainen, kunnes se ylittää tietokannan koon. Ylityksestä maksu.</td></tr>
+</table>
+<p><strong>Ilmainen taso:</strong> vanhalla 12 kk tilillä 750 h/kk db.t4g.micro-instanssille ja 20 GB tallennusta. Uudella Free plan -tilillä RDS ei ole käytettävissä.</p>
+<div class="tip"><p>Kurssin esimerkki maksaa noin 12 $/kk single-AZ-versiona. Multi-AZ on tuotannossa perusteltu, mutta kehityksessä se on turha kulu.</p></div>
+</div>
 
 <div class="card">
 <p><span class="label">Mitä se on:</span> Hallittu relaatiotietokanta. AWS hoitaa asennuksen, varmuuskopiot, version päivitykset ja korkean saatavuuden. Sinä kirjoitat skeeman ja kyselyt.</p>
@@ -563,6 +670,17 @@ resource "aws_db_instance" "postgres" {
 <!-- ============================================================ -->
 <section id="ecs">
 <h2 class="module-title">8. ECS Fargate (Docker-kontit ilman palvelimia)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Tehtävän koko</th><th>Hinta / tunti</th><th>Hinta / kk</th></tr>
+  <tr><td>0,25 vCPU / 0,5 GB</td><td>0,0123 $</td><td>≈ 9 $</td></tr>
+  <tr><td>0,5 vCPU / 1 GB</td><td>0,0247 $</td><td>≈ 18 $</td></tr>
+  <tr><td>1 vCPU / 2 GB</td><td>0,0494 $</td><td>≈ 36 $</td></tr>
+  <tr><td>1 vCPU / 2 GB, Fargate Spot</td><td>≈ 0,015 $</td><td>≈ 11 $</td></tr>
+</table>
+<p>ECS-klusteri ja palvelu ovat ilmaisia, eikä niillä ole hallintamaksua. EKS maksaa 0,10 $/h klusterista, eli noin 73 $/kk. Fargate-tehtävät laskutetaan allokoidun vCPU:n ja muistin mukaan, ei käytön mukaan. Jos tehtävä on 1 vCPU mutta käyttää 15 % siitä, maksat silti täyden hinnan.</p>
+<div class="warn"><p>Kurssin esimerkissä jokainen tehtävä saa julkisen IP:n (<code>assign_public_ip = true</code>), joten kahden tehtävän lisäksi tulee 2 × 3,65 $/kk. Tuotannossa NAT vaihtaa tämän toiseen maksuun, joten laske molemmat.</p></div>
+</div>
 
 <div class="card">
 <p><span class="label">Mitä se on:</span> ECS (Elastic Container Service) ajaa Docker-kontteja. Fargate-tilassa et hallitse palvelimia lainkaan: määrittelet kontin koon ja määrän, AWS ajaa sen. Vaihtoehtoja ovat EC2-pohjainen ECS ja EKS (Kubernetes). Yksinkertaisuuden vuoksi Fargate on oikea valinta useimmille web-sovelluksille.</p>
@@ -672,6 +790,15 @@ resource "aws_ecs_service" "app" {
 <!-- ============================================================ -->
 <section id="alb">
 <h2 class="module-title">9. ALB (Application Load Balancer)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Komponentti</th><th>Hinta</th></tr>
+  <tr><td>ALB-perusmaksu</td><td>0,0225 $/h ≈ 16,43 $/kk</td></tr>
+  <tr><td>LCU (kuormayksikkö)</td><td>0,008 $ / LCU-h. Yksi LCU ≈ 5,84 $/kk jatkuvasti käytettynä.</td></tr>
+  <tr><td>Julkinen IPv4 ALB:lle</td><td>Voi lisätä noin 3,65 $/kk per AZ</td></tr>
+</table>
+<p>Pieni kurssisovellus tuottaa yleensä 1–2 LCU:ta, joten kokonaisuus on noin 22–28 $/kk. Vanhalla 12 kk tilillä ALB:lle oli ilmaisia tunteja, mutta uudella Free plan -tilillä ei.</p>
+</div>
 
 <div class="card">
 <p><span class="label">Mitä se on:</span> Kuormantasaaja, joka ymmärtää HTTP-tason. Se jakaa pyynnöt terveille kohteille (target group), päättää TLS:n ja voi reitittää polkujen perusteella (esim. <code>/api/*</code> Djangolle, muu Next.js:lle).</p>
@@ -728,6 +855,16 @@ resource "aws_lb_listener" "http" {
 <!-- ============================================================ -->
 <section id="logs">
 <h2 class="module-title">10. CloudWatch (lokit, mittarit, hälytykset)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Komponentti</th><th>Hinta</th><th>Ilmainen taso</th></tr>
+  <tr><td>Lokien sisäänluku</td><td>0,50 $/GB</td><td>5 GB/kk (aina ilmainen)</td></tr>
+  <tr><td>Lokien säilytys</td><td>0,03 $/GB/kk</td><td>Sama 5 GB:n raja</td></tr>
+  <tr><td>Standard-hälytys</td><td>0,10 $/kk</td><td>10 hälytystä aina ilmaisia</td></tr>
+  <tr><td>Oma mittari</td><td>0,30 $/kk ensimmäiset 10 000</td><td>Ei</td></tr>
+</table>
+<p>Aseta lokeille säilytysaika, kuten kurssin esimerkissä 14 päivää. Muuten lokit kertyvät ja maksavat.</p>
+</div>
 
 <div class="card">
 <p><span class="label">Mitä se on:</span> Havainnointipalvelu. Kerää lokit (Logs), mittarit (Metrics), hälytykset (Alarms) ja hallintapaneelit (Dashboards).</p>
@@ -765,6 +902,16 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
 <!-- ============================================================ -->
 <section id="s3">
 <h2 class="module-title">11. S3 (Simple Storage Service)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Komponentti</th><th>Hinta</th></tr>
+  <tr><td>S3 Standard tallennus (Tukholma)</td><td>0,023 $/GB/kk</td></tr>
+  <tr><td>Pyynnöt</td><td>Muutama sentti miljoonaa kohden</td></tr>
+  <tr><td>Siirto internetiin</td><td>Ensimmäiset 100 GB/kk ilmaisia, sen jälkeen noin 0,09 $/GB</td></tr>
+  <tr><td>Versiointi</td><td>Ylläpitää vanhoja versioita, joista maksetaan tallennus</td></tr>
+</table>
+<p>Vanhalla 12 kk tilillä 5 GB ilmaista tallennusta ja 20 000 GET-pyyntöä. Uudella Free plan -tilillä erillistä S3-ilmaisosaa ei ole. Käytännössä 1 GB media maksaa noin 0,02 $/kk.</p>
+</div>
 
 <div class="card">
 <p><span class="label">Mitä se on:</span> Objektitallennus. Tallennat tiedostoja "bucketeihin" avaimen (polun) perusteella. Kestävyys on erittäin korkea ja kapasiteetti käytännössä rajaton.</p>
@@ -816,6 +963,9 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "media" {
 <!-- ============================================================ -->
 <section id="cloudfront">
 <h2 class="module-title">12. CloudFront (CDN)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<p>CloudFront laskuttaa siirrosta ja pyynnöistä. Siirto internetiin on noin 0,085–0,09 $/GB (alueesta riippuen). CloudFrontin aina-ilmaisen tason suuruus vaihtelee ajan myötä, joten tarkista sen nykyinen määrä AWS:n Free Tier -sivulta ennen käyttöönottoa. Pieni staattinen sivusto jää yleensä muutaman dollarin kuukausikustannukseen.</p>
+</div>
 
 <div class="card">
 <p><span class="label">Mitä se on:</span> Sisältöjakeluverkko (CDN). Välimuistittaa sisältöä palvelinten lähellä ympäri maailmaa ja tarjoaa HTTPS:n ilmaiseksi sertifikaatilla.</p>
@@ -898,6 +1048,15 @@ resource "aws_s3_bucket_policy" "media" {
 <!-- ============================================================ -->
 <section id="dns">
 <h2 class="module-title">13. Route 53 ja ACM (DNS ja TLS)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Palvelu</th><th>Hinta</th></tr>
+  <tr><td>Route 53 hosted zone</td><td>0,50 $/kk (ensimmäiset 25 zonea)</td></tr>
+  <tr><td>Route 53 kyselyt</td><td>0,40 $ / miljoona (ensimmäiset 1 mrd)</td></tr>
+  <tr><td>ACM julkiset sertifikaatit</td><td>Ilmaisia, myös automaattinen uusinta</td></tr>
+</table>
+<p>Domainin ostohinta tulee rekisterinpitäjältä, ei AWS:ltä. Yksi zone ja muutama miljoona kyselyä kuukaudessa maksavat alle 2 $.</p>
+</div>
 
 <div class="card">
 <p><span class="label">Mitä se on:</span> Route 53 on DNS-palvelu (nimipalvelin). ACM (AWS Certificate Manager) myöntää ilmaiset TLS-sertifikaatit, jotka uusiutuvat automaattisesti.</p>
@@ -980,6 +1139,16 @@ resource "aws_route53_record" "app" {
 <!-- ============================================================ -->
 <section id="ec2">
 <h2 class="module-title">14. EC2 (virtuaalipalvelin, VPS-vaihtoehto)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Komponentti</th><th>Arvio / kk</th></tr>
+  <tr><td>t3.micro tai t4g.micro (24/7)</td><td>noin 9 $ (arvio, tarkista Pricing Calculatorilla)</td></tr>
+  <tr><td>EBS gp3 8 GB</td><td>noin 1 $</td></tr>
+  <tr><td>Julkinen IPv4</td><td>3,65 $</td></tr>
+  <tr><td>Yhteensä</td><td><strong>noin 13–15 $</strong></td></tr>
+</table>
+<p>Systems Manager Session Manager on ilmainen. Vanhalla 12 kk tilillä 750 h/kk t2/t3.micro-instanssille. Uudella Free plan -tilillä EC2 ei välttämättä ole käytettävissä. Pysäytetty instanssi ei maksa tuntihintaa, mutta EBS-levy ja julkinen IP maksavat edelleen.</p>
+</div>
 
 <div class="card">
 <p><span class="label">Mitä se on:</span> Virtuaalipalvelin. Saat täyden hallinnan käyttöjärjestelmään, mutta myös vastuun päivityksistä, palomuurista ja skaalauksesta. EC2 on AWS:n vastine VPS:lle.</p>
@@ -1029,6 +1198,15 @@ resource "aws_instance" "vps" {
 <!-- ============================================================ -->
 <section id="lambda">
 <h2 class="module-title">15. Lambda ja EventBridge</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Komponentti</th><th>Hinta</th><th>Aina ilmainen</th></tr>
+  <tr><td>Lambda pyynnöt</td><td>≈ 0,20 $ / miljoona yli rajan</td><td>1 miljoona pyyntöä/kk</td></tr>
+  <tr><td>Lambda kesto</td><td>≈ 0,0000167 $ / GB-s yli rajan</td><td>400 000 GB-s/kk</td></tr>
+  <tr><td>EventBridge ajastettu sääntö</td><td>Yleensä ilmainen oletusväylällä</td><td>Kyllä</td></tr>
+</table>
+<p>Päivittäinen ETL, joka ajaa muutaman minuutin, jää aina-ilmaisen tason sisään. Lambda on siksi yksi halvimmista tavoista ajaa ajastettuja data-tehtäviä.</p>
+</div>
 
 <div class="card">
 <p><span class="label">Mitä se on:</span> Lambda ajaa koodia tapahtumien perusteella ilman palvelinta. Maksat vain ajoajasta. EventBridge on tapahtumaväylä, joka voi käynnistää Lambdan aikataulun (cron) tai muiden palveluiden tapahtumien perusteella.</p>
@@ -1098,6 +1276,9 @@ resource "aws_lambda_permission" "allow_events" {
 <!-- ============================================================ -->
 <section id="cicd">
 <h2 class="module-title">16. CI/CD: GitHub Actions ja OIDC</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<p>OIDC-palveluntarjoaja ja IAM-rooli ovat ilmaisia. Kustannus syntyy vain siitä, mitä putki käyttää: ECR-tallennus, ECS-tehtävät, Fargate-ajoaika ja mahdollinen Build-kesto. GitHub Actionsilla on oma ilmaisten minuuttien kiintiö, joka riippuu repon tyypistä ja GitHub-tilistäsi. Tarkista se GitHubin laskutussivulta.</p>
+</div>
 
 <div class="card">
 <p><span class="label">Mitä se on:</span> Automaattinen putki, joka testaa, rakentaa ja julkaisee koodin. AWS-puolella yhdistät GitHub Actionsin IAM-rooliin OIDC:n avulla, jolloin pitkäaikaisia AWS-avaimia ei tarvita lainkaan.</p>
@@ -1209,6 +1390,7 @@ jobs:
   <tr><td>Miksi ECS-tehtävällä on kaksi roolia?</td><td>Execution role hakee imagen ja lokit, task role antaa sovellukselle oikeudet AWS-palveluihin.</td></tr>
   <tr><td>Miksi tila on S3:ssa?</td><td>Jaettu, salattu ja versioitu tila, jota voi lukita DynamoDB:llä.</td></tr>
   <tr><td>Miksi OIDC on parempi kuin AWS-avaimet CI:ssä?</td><td>Tokenit vanhenevat, eikä salaisuuksia tarvitse tallentaa repoon.</td></tr>
+  <tr><td>Mikä maksaa eniten kurssiversiossa?</td><td>ALB, Fargate-tehtävät ja RDS. Lisäksi julkiset IP-osoitteet ja unohtuneet resurssit (NAT, EIP, EBS-levyt).</td></tr>
   <tr><td>Mikä on Fargaten ja EC2:n ero?</td><td>Fargatessa AWS hallitsee palvelimet, EC2:ssa hallitset itse käyttöjärjestelmän.</td></tr>
 </table>
 
