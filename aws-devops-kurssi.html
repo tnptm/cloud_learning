@@ -158,6 +158,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 0.9rem; }
     <li><a href="#secrets">Secrets Manager</a></li>
     <li><a href="#rds">RDS (PostgreSQL)</a></li>
     <li><a href="#ecs">ECS Fargate (Docker)</a></li>
+    <li><a href="#eks">EKS (Kubernetes)</a></li>
     <li><a href="#alb">ALB</a></li>
     <li><a href="#logs">CloudWatch</a></li>
     <li><a href="#s3">S3</a></li>
@@ -165,6 +166,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 0.9rem; }
     <li><a href="#dns">Route 53 ja ACM</a></li>
     <li><a href="#ec2">EC2 (VPS-vaihtoehto)</a></li>
     <li><a href="#lambda">Lambda ja EventBridge</a></li>
+    <li><a href="#eventdriven">Event-driven -palikat</a></li>
     <li><a href="#cicd">CI/CD: GitHub Actions + OIDC</a></li>
     <li><a href="#harjoitus">Kokoava harjoitus</a></li>
   </ol>
@@ -787,6 +789,49 @@ resource "aws_ecs_service" "app" {
 </div>
 </section>
 
+
+<!-- ============================================================ -->
+<section id="eks">
+<h2 class="module-title">EKS (Elastic Kubernetes Service)</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> EKS on AWS:n hallinnoima Kubernetes. AWS ylläpitää Kubernetesin control planea (API-palvelin, etcd, scheduler), ja sinä hallitset worker-solmuja tai Fargate-podeja sekä kaikkea, mikä ajetaan klusterissa. Kubernetes on ECS:ää laajempi ja monimutkaisempi alusta, mutta se on myös standardi, joka toimii samalla tavalla pilvestä toiseen.</p>
+<p><span class="label">Liittyy muihin:</span> ECR (imagen säilytys), ALB Ingress Controller tai AWS Load Balancer Controller (ALB:n luonti Ingressistä), EBS ja EFS (tallennus), IAM Roles for Service Accounts tai EKS Pod Identity (oikeudet podeille), Karpenter ja Cluster Autoscaler (solmujen skaalaus), CloudWatch Container Insights ja Prometheus/Grafana (havainnointi), Helm ja Argo CD (sovellusten asennus ja GitOps).</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Monipalveluinen järjestelmä:</span> kun palveluita on kymmeniä ja niiden välillä on monimutkaisia riippuvuuksia, Kubernetesin deklaratiivinen malli (haluttu tila YAML:ssä, klusteri pitää sen yllä) pitää kokonaisuuden hallittavana.</li>
+  <li><span class="label">Siirrettävyys:</span> Kubernetes-manifestit toimivat samoin EKS:ssä, GKE:ssa, AKS:ssa ja omalla palvelimella. Tämä on tärkeää, jos haluat välttää lukkiutumisen yhteen pilveen.</li>
+  <li><span class="label">Itseparantuminen ja rullaavat päivitykset:</span> Deployment korvaa kuolleet podit, ja readiness-probe estää liikenteen rikkinäisiin versioihin. Canary-julkaisut onnistuvat Argo Rollouts -työkalulla.</li>
+  <li><span class="label">Ekosysteemi:</span> Helm-kaaviot, Operaattorit ja valmiit monitorointipinot (esim. Prometheus) löytyvät suoraan, eikä niitä tarvitse kirjoittaa itse.</li>
+  <li><span class="label">Oppiminen:</span> Kubernetes-osaaminen on työmarkkinoilla yleisesti haettu taito. Jos käytät jo K3s:ää kotipalvelimella, käsitteet (Pod, Deployment, Service, Ingress, ConfigMap, Secret) siirtyvät EKS:ään suoraan.</li>
+</ul>
+
+<h3>Milloin EKS ei kannata</h3>
+<ul class="purpose-list">
+  <li><span class="label">Yksi tai kaksi palvelua:</span> ECS Fargate on yksinkertaisempi ja usein halvempi, koska klusterin ylläpito jää pois.</li>
+  <li><span class="label">Pieni tiimi ilman platform-osaamista:</span> EKS:n päivitykset (Kubernetes-versiot tulevat noin kolmen kuukauden välein ja vanhenevat), add-onit, verkkoasetukset ja IAM-yhdistäminen vaativat jatkuvaa huomiota.</li>
+  <li><span class="label">Serverless-kuormat:</span> Lambda tai Step Functions sopivat paremmin lyhyisiin ja tapahtumapohjaisiin tehtäviin.</li>
+</ul>
+
+<h3>Hinnoittelu ja ilmainen taso</h3>
+<div class="price">
+<table>
+  <tr><th>Komponentti</th><th>Hinta (suuntaa antava)</th></tr>
+  <tr><td>EKS control plane</td><td>0,10 $/h per klusteri ≈ 73 $/kk. Ei ilmaista tasoa.</td></tr>
+  <tr><td>Worker-solmut EC2:ssa</td><td>Normaali EC2-hinta solmun koon mukaan. Yksi t3.medium on noin 30 $/kk.</td></tr>
+  <tr><td>Fargate-podit</td><td>Samat hinnat kuin ECS Fargatessa, ks. aiempi osio</td></tr>
+  <tr><td>Load balancer, NAT, EBS, IP-osoitteet</td><td>Samat hinnat kuin muissa palveluissa, ja ne kertyvät helposti</td></tr>
+</table>
+<p>Pienin järkevä EKS-kokoonpano (kaksi solmua, yksi klusteri, ALB ja NAT) maksaa helposti 200–250 $/kk ennen sovelluskuormaa. Tämä on tärkein syy valita ECS, jos palveluita on vähän.</p>
+</div>
+
+<div class="tip">
+<p><strong>Oppimisvinkki:</strong> Ennen EKS:ää opettele K3s tai kind paikallisesti. Samat kubectl-komennot ja manifestit toimivat, joten opit käsitteet ilman pilvilaskua.</p>
+</div>
+</section>
+
 <!-- ============================================================ -->
 <section id="alb">
 <h2 class="module-title">9. ALB (Application Load Balancer)</h2>
@@ -1364,6 +1409,116 @@ jobs:
 
 <div class="tip">
 <p>Yllä <code>latest</code>-tagin sijaan käytetään commit-hashia, jolloin jokainen versio on jäljitettävissä. Tuotannon task definitionin image-tagi päivitetään Terraformilla tai ECS-deployn kautta.</p>
+</div>
+</section>
+
+
+<!-- ============================================================ -->
+<section id="eventdriven">
+<h2 class="module-title">Event-driven -palikat</h2>
+
+<div class="card">
+<p><span class="label">Periaate:</span> Event-driven-arkkitehtuurissa palvelut eivät kutsu toisiaan suoraan. Ne julkaisevat tapahtuman (esim. "tilaus luotu", "tiedosto ladattu") ja muut palvelut reagoivat siihen omassa tahdissaan. Tämä irrottaa palvelut toisistaan: tuottaja ei tiedä, kuka kuuntelee, ja kuluttaja voi olla hetkellisesti alhaalla ilman, että tuottaja kaatuu.</p>
+<p><span class="label">Tyypillinen ketju:</span></p>
+<pre><code>Tuottaja (API, S3, IoT, aikataulu)
+        ↓ tapahtuma
+EventBridge / SNS   (reititys ja monistus)
+        ↓
+SQS-jono            (puskuri, uudelleenyritykset)
+        ↓
+Lambda / ECS-työntekijä (käsittely)
+        ↓
+DynamoDB / RDS / S3 (tulos)
+        ↓ virheet
+Dead-letter-jono    (käsittelemättömät viestit talteen)</code></pre>
+</div>
+
+<h3>Amazon EventBridge</h3>
+<div class="card">
+<p><span class="label">Mitä se on:</span> Tapahtumaväylä, joka vastaanottaa JSON-tapahtumia, suodattaa ne sääntöjen perusteella ja toimittaa kohteisiin (Lambda, SQS, SNS, Step Functions, ECS-tehtävä ja yli 20 muuta kohdetyyppiä). Sisältää myös Scheduler-palvelun (cron-ajastukset) ja Pipes-palvelun (lähteestä kohteeseen suodatuksen ja muunnoksen kanssa, ilman koodia).</p>
+<p><span class="label">Liittyy muihin:</span> lähes kaikki AWS-palvelut julkaisevat tapahtumia EventBridgeen (EC2:n tilamuutokset, CodePipeline, S3, CloudTrail). Lisäksi omat sovellukset voivat julkaista omia tapahtumia "custom bus" -väylään.</p>
+<p><span class="label">Ratkaisee:</span> reititys ilman, että tuottaja tuntee kuluttajat. Esim. sama "tilaus luotu" -tapahtuma menee laskutukseen, varastoon ja sähköpostiin, ja uusi kuluttaja lisätään vain uudella säännöllä. Myös ajastetut tehtävät ja SaaS-tapahtumien (kuten kumppanijärjestelmän webhookit) vastaanotto.</p>
+<p><span class="label">Hinta (suuntaa antava):</span> AWS:n omat tapahtumat oletusväylällä ovat ilmaisia. Oma väylä maksaa noin 1 $ miljoonasta tapahtumasta. Scheduler sisältää ilmaisia ajoja kuukaudessa, sen jälkeen maksu per ajo.</p>
+</div>
+
+<h3>Amazon SNS (Simple Notification Service)</h3>
+<div class="card">
+<p><span class="label">Mitä se on:</span> Pub/sub-aihe (topic), johon julkaistaan viesti ja joka monistaa sen kaikille tilaajille: SQS-jonoille, Lambdalle, HTTP-päätepisteille, sähköpostille, SMS:lle ja mobiilipushille.</p>
+<p><span class="label">Liittyy muihin:</span> SQS (usein SNS → useita SQS-jonoja -yhdistelmä, "fan-out"), CloudWatch-hälytykset (ilmoitukset), Lambda, EventBridge (EventBridgen kohteena SNS on yleinen).</p>
+<p><span class="label">Ratkaisee:</span> yhden tapahtuman lähettäminen usealle kuluttajalle samanaikaisesti. Esim. kuvan lataus S3:een voi laukaista thumbnail-generoinnin ja virustarkistuksen samalla kertaa. Sekä ops-ilmoitukset: hälytys menee sähköpostiin, Slackiin ja tiimin pagerille.</p>
+<p><span class="label">Hinta (suuntaa antava):</span> noin miljoona julkaisua ilmaisia per kuukausi, sen jälkeen noin 0,50 $ per miljoona.</p>
+</div>
+
+<h3>Amazon SQS (Simple Queue Service)</h3>
+<div class="card">
+<p><span class="label">Mitä se on:</span> Viestijono, johon tuottaja kirjoittaa ja kuluttaja lukee omaa tahtiaan. Viesti poistetaan jonosta vasta, kun kuluttaja vahvistaa sen käsitellyksi. Standard-jono on lähes rajaton ja tarjoaa "vähintään kerran" -toimituksen, FIFO-jono tarjoaa järjestyksen ja "tasan kerran" -käsittelyn (kapeammin rajattu).</p>
+<p><span class="label">Liittyy muihin:</span> Lambda (event source mapping, joka lukee jonoa automaattisesti), SNS (fan-out), ECS-työntekijät (jonon pituuteen perustuva skaalaus), Dead-letter-jono, EventBridge Pipes.</p>
+<p><span class="label">Tärkeitä asetuksia:</span></p>
+<ul class="purpose-list">
+  <li><span class="label">Visibility timeout:</span> aika, jonka viesti on piilossa muilta käsittelyn ajan. Jos käsittely kestää pidempään kuin tämä, viesti ilmestyy takaisin jonoon ja käsitellään uudelleen.</li>
+  <li><span class="label">Dead-letter-jono (DLQ):</span> viestit, jotka epäonnistuvat esimerkiksi viidesti peräkkäin, siirretään erilliseen jonoon. Näin yksi rikkinäinen viesti ei jumita koko jonoa, ja virheen voi tutkia myöhemmin.</li>
+  <li><span class="label">Long polling:</span> kuluttaja odottaa viestejä yhteyden päässä, jolloin tyhjät vastaukset ja pyyntökulut vähenevät.</li>
+</ul>
+<p><span class="label">Ratkaisee:</span> kuormanpuskurointi (piikit eivät kaada tietokantaa), palveluiden irrotus, uudelleenyritykset ja se, että työntekijä voi olla hetken alhaalla ilman datan katoamista.</p>
+<p><span class="label">Hinta (suuntaa antava):</span> ensimmäiset miljoona pyyntöä kuukaudessa ilmaisia aina. Sen jälkeen noin 0,40 $ per miljoona pyyntöä Standard-jonossa. Käytännössä jonot ovat yleensä hyvin halpoja.</p>
+</div>
+
+<h3>Lambda-tapahtumalähteet</h3>
+<div class="card">
+<p><span class="label">Mitä se on:</span> Lambdalla on useita tapoja saada tapahtumia: suora kutsu (synkroninen, esim. API Gatewayn kautta), asynkroninen kutsu (esim. S3-ilmoitus, EventBridge-sääntö) ja event source mapping, joka lukee SQS-, Kinesis-, DynamoDB Streams- tai MSK-lähteitä ja toimittaa niistä eriä (batch) funktiolle.</p>
+<p><span class="label">Liittyy muihin:</span> SQS, Kinesis, DynamoDB Streams, S3-tapahtumat, EventBridge, API Gateway.</p>
+<p><span class="label">Ratkaisee:</span> Lambdalle ei tarvitse kirjoittaa pollausluuppia. Lambda skaalautuu lähteen mukaan, ja virheelliset erät voidaan ohjata DLQ:hun tai bisect-toiminnolla pienempiin osiin.</p>
+<p><span class="label">Hinta:</span> Lambda-hinta (pyynnöt ja GB-sekunnit) per käsittely, sekä lähteen oma hinta (SQS, Kinesis jne.). Aina-ilmaista tasoa ks. Lambda-osio.</p>
+</div>
+
+<h3>Amazon Kinesis Data Streams ja Data Firehose</h3>
+<div class="card">
+<p><span class="label">Mitä se on:</span> Kinesis Data Streams on suoratoistopalvelu, jossa tapahtumat ovat järjestettyjä shardeihin ja säilyvät streamissä (oletuksena 24 h, enintään 365 pv). Monta kuluttajaa voi lukea samaa dataa itsenäisesti. Firehose on "kuljeta ja tallenna" -palvelu, joka kirjoittaa striimin S3:een, Redshiftiin tai OpenSearchiin ilman omaa koodia, usein Parquet-muodossa.</p>
+<p><span class="label">Liittyy muihin:</span> Lambda (striimin kuluttajana), Glue ja Athena (datan kysely S3:sta), S3 (data lake), Managed Service for Apache Flink (reaaliaikainen käsittely), CloudWatch.</p>
+<p><span class="label">Ratkaisee:</span> suuren määrän laitedataa, klikkausvirtoja tai lokeja reaaliajassa. Tyypillinen data engineering -malli: Kinesis → Firehose → S3 Parquet → Athena. Myös se, että useat kuluttajat tarvitsevat samaa dataa eri tahtiin.</p>
+<p><span class="label">Hinta (suuntaa antava):</span> Data Streams maksaa shardeista (noin 11 $/kk per shard provisioned-tilassa, lisäksi siirrot). Firehose maksaa per ingestoitu GB, noin 0,03 $/GB. Kinesis ei ole ilmainen, joten kokeilun jälkeen sammuta se.</p>
+</div>
+
+<h3>Amazon MSK (Managed Streaming for Apache Kafka)</h3>
+<div class="card">
+<p><span class="label">Mitä se on:</span> Hallittu Apache Kafka -klusteri. Kafka on suosittu, mutta operoinnissaan raskas, ja MSK ottaa brokerit, päivitykset ja replikoinnin hoitaakseen. Ohjelmointirajapinta on sama kuin avoimessa Kafkassa, joten kaikki Kafka-työkalut ja -kirjastot toimivat.</p>
+<p><span class="label">Liittyy muihin:</span> Lambda (MSK event source mapping), Kafka Connect (esim. tietokantamuutosten striimaus), MSK Connect, Glue Schema Registry, Flink.</p>
+<p><span class="label">Ratkaisee:</span> kun tarvitset Kafkan semantiikkaa (pitkä säilytys, kompaktointi, avain-pohjainen järjestys, laaja ekosysteemi) tai tiimi jo osaa Kafkan. Muuten Kinesis tai SQS on yleensä yksinkertaisempi.</p>
+<p><span class="label">Hinta (suuntaa antava):</span> maksat brokereista tunneittain, vähintään kaksi tai kolme brokeria. Pienikin klusteri maksaa usein useita satoja dollareita kuukaudessa. Tämä tekee MSK:sta kalliin kehitykseen. Serverless-versio on olemassa, mutta sekin on kalliimpi kuin pienet SQS-jonot.</p>
+</div>
+
+<h3>AWS Step Functions</h3>
+<div class="card">
+<p><span class="label">Mitä se on:</span> Tilakone (state machine), joka orkestroi useita vaiheita: Lambdoja, ECS-tehtäviä, API-kutsuja ja muita palveluita. Määritys on JSON tai YAML (Amazon States Language), ja siinä on valmiit uudelleenyritykset, haarautumiset, rinnakkaisajo ja virheenkäsittely.</p>
+<p><span class="label">Liittyy muihin:</span> Lambda, ECS, EventBridge (käynnistys), SQS ja SNS, DynamoDB, Glue-työt, Athena.</p>
+<p><span class="label">Ratkaisee:</span> monivaiheiset prosessit, joissa pitää tietää missä vaiheessa mennään. Esim. tilauksen käsittely: maksu → varastovaraus → toimitus → ilmoitus, ja jos maksu epäonnistuu, kompensoiva toiminta ajetaan. Ilman tätä logiikka päätyy koodiin, joka on vaikea jäljittää.</p>
+<p><span class="label">Hinta (suuntaa antava):</span> Standard-tilassa noin 0,025 $ tuhatta tilasiirtymää kohden. Ilmaisia siirtymiä on 4 000 kuukaudessa aina. Express-tila on halvempi suurelle, lyhytkestoiselle kuormalle.</p>
+</div>
+
+<h3>Amazon EventBridge Pipes</h3>
+<div class="card">
+<p><span class="label">Mitä se on:</span> Punkki lähteen ja kohteen välillä. Esim. DynamoDB Stream → suodatus → Step Functions, tai SQS → muunnos → EventBridge-väylä, ilman välikoodia.</p>
+<p><span class="label">Ratkaisee:</span> yksinkertaiset integraatiot, joissa halutaan vain suodatus ja muunnos. Jos logiikkaa on paljon, Lambda on parempi.</p>
+</div>
+
+<h3>DynamoDB Streams ja S3-tapahtumailmoitukset</h3>
+<div class="card">
+<p><span class="label">Mitä ne ovat:</span> DynamoDB Streams julkaisee taulun muutokset (lisäys, muokkaus, poisto) järjestyksessä. S3-tapahtumat kertovat, kun objekti luodaan tai poistetaan, ja ne voivat kohdistua Lambdaan, SQS:ään, SNS:ään tai EventBridgeen.</p>
+<p><span class="label">Liittyy muihin:</span> Lambda, EventBridge, Kinesis (DynamoDB Streamsin voi kytkeä Kinesisiin), OpenSearch (indeksointi muutoksista).</p>
+<p><span class="label">Ratkaisee:</span> välimuistin päivitys, hakuindeksin ylläpito, muutosloki ja tiedoston käsittely heti latauksen jälkeen. Muutokset tulevat ilman, että sovellus kertoo niistä erikseen (eikä tarvitse muistaa kirjoittaa kahteen paikkaan).</p>
+<p><span class="label">Hinta:</span> DynamoDB Streams ei maksa erikseen, mutta lukuja laskutetaan normaalisti. S3-tapahtumista maksetaan kohteen (Lambda, SQS jne.) hinta.</p>
+</div>
+
+<h3>Mitä event-driven-järjestelmässä pitää muistaa</h3>
+<div class="tip">
+<ul class="purpose-list">
+  <li><span class="label">Vähintään kerran -toimitus:</span> useimmat palvelut voivat toimittaa saman viestin kahdesti. Käsittelijän on oltava <em>idempotentti</em>, eli kahdesti ajettuna lopputulos on sama. Käytä yksilöllistä viestitunnusta tarkistukseen.</li>
+  <li><span class="label">Järjestys:</span> Standard-jonot eivät takaa järjestystä. Jos järjestys on tärkeä, käytä FIFO-jonoa tai osiointiavainta (Kinesis, MSK).</li>
+  <li><span class="label">Dead-letter-jono aina:</span> ilman DLQ:ta virheelliset viestit joko kiertävät ikuisesti tai katoavat. Tarkista DLQ:n syvyys CloudWatch-hälytyksellä.</li>
+  <li><span class="label">Outbox-malli:</span> jos tietokantaan kirjoittaminen ja tapahtuman julkaisu pitää onnistua yhdessä, kirjoita tapahtuma samaan transaktioon outbox-tauluun, ja erillinen prosessi julkaisee sen. Näin tapahtuma ei katoa, jos julkaisu epäonnistuu.</li>
+  <li><span class="label">Tapahtuman muoto:</span> versioi skeema ja lisää tapahtumaan aikaleima ja tunniste. Muuten muutos tuottajassa rikkoo kuluttajat hiljaa.</li>
+  <li><span class="label">Havainnointi:</span> jokainen tapahtuma tarvitsee korrelaatio-ID:n, jotta ketjun voi seurata lokeista (X-Ray tai OpenTelemetry).</li>
+</ul>
 </div>
 </section>
 
