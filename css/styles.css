@@ -64,7 +64,8 @@ nav.toc {
   overflow-y: auto;
 }
 nav.toc h2 { font-size: 1rem; margin: 0 0 12px; color: var(--accent); }
-nav.toc ol { padding-left: 18px; margin: 0; }
+/*nav.toc ol { padding-left: 18px; margin: 0; }*/
+nav.toc ul { list-style: none; padding-left: 0; margin: 0; }
 nav.toc li { margin: 6px 0; font-size: 0.92rem; }
 nav.toc a { color: var(--text); text-decoration: none; }
 nav.toc a:hover { color: var(--accent-2); }
