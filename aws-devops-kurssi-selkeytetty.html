@@ -121,6 +121,14 @@ Lokit ja mittarit: ECS / ALB / RDS ──→ CloudWatch
 Julkaisu: GitHub ──→ Actions + OIDC ──→ ECR ──→ uusi ECS-tehtäväversio</code></pre>
 <p class="small-note">Huomaa: ACM ei ole käyttäjän verkkopyynnön välissä kulkeva palvelu. Se hallitsee TLS-sertifikaattia, jonka ALB tai CloudFront ottaa käyttöön HTTPS-yhteyden salaamiseen.</p>
 </div>
+
+<h3>Arkkitehtuurin perusperiaatteet</h3>
+<div class="card">
+<p><strong>Jaettu vastuu:</strong> AWS suojaa ja ylläpitää pilven perusinfrastruktuuria, mutta asiakas vastaa muun muassa käyttöoikeuksista, datasta ja sovelluksensa turvallisuudesta. Vastuu vaihtelee palvelun mukaan: EC2:ssa asiakas päivittää myös käyttöjärjestelmän; Fargatessa AWS huolehtii palvelinalustasta, mutta asiakas vastaa esimerkiksi kontti-imagesta ja sen riippuvuuksista.</p>
+<p><strong>Saatavuus, kestävyys ja palautuminen ovat eri asioita.</strong> Usean AZ:n toteutus voi pitää palvelun käytettävissä yksittäisen vyöhykkeen vikatilanteessa. Se ei kuitenkaan korvaa varmuuskopioita: esimerkiksi virheellinen tietokantamuutos voi siirtyä myös varakantaan. Määritä, kuinka paljon dataa voi menettää (<em>RPO</em>) ja kuinka nopeasti palvelu on palautettava (<em>RTO</em>), ja testaa palautus.</p>
+<p><strong>Pidä sovellus mahdollisuuksien mukaan tilattomana.</strong> Kontti voi vaihtua julkaisun tai vian yhteydessä. Säilytä pysyvä data esimerkiksi RDS:ssä tai S3:ssa ja jaettu istuntotila sovellukseen sopivassa ulkoisessa tallennuksessa. Älä oleta, että kontin paikallinen levy säilyy tehtävän vaihtuessa.</p>
+<p><strong>Erota ympäristöt.</strong> Kehitys- ja tuotantoympäristöt kannattaa eristää erillisille AWS-tileille ja omiin Terraform-tiloihinsa. Rajaa myös tilien väliset oikeudet huolellisesti: erillinen tili vähentää virheen vaikutusaluetta, mutta ei yksin poista kaikkia riskejä.</p>
+</div>
 </section>
 
 
@@ -206,6 +214,13 @@ Julkaisu: GitHub ──→ Actions + OIDC ──→ ECR ──→ uusi ECS-teht�
   <li>Konsoliklikkailu ei skaalaudu eikä jää dokumentoiduksi. Koodi on dokumentaatio.</li>
   <li><code>plan</code>-vaihe näyttää etukäteen, mitä muuttuu, ja vähentää yllätyksiä.</li>
 </ul>
+
+  <h3>Työnkulku ja muutosten turvallisuus</h3>
+  <div class="card">
+  <p><code>terraform init</code> alustaa backendin ja providerit, <code>terraform plan</code> näyttää suunnitellut muutokset ja <code>terraform apply</code> toteuttaa ne. Terraform päättelee resurssien järjestyksen tavallisesti niiden välisistä viittauksista. Koodin ulkopuolella tehty muutos voi aiheuttaa <em>driftin</em>, jonka seuraava plan voi näyttää.</p>
+  <p>Tarkista erityisesti korvaavat muutokset: <code>-/+</code> tarkoittaa poistamista ja uudelleenluontia, mikä voi aiheuttaa käyttökatkon tai datan menetyksen. <code>lifecycle</code>-asetuksella <code>prevent_destroy</code> voi estää poiston, kun asetus on mukana määrityksessä; se ei suojaa poistamiselta AWS-konsolissa eikä silloin, kun koko resurssimääritys poistetaan. Varmuuskopioi tärkeä data ja testaa palautus erikseen.</p>
+  <p>Tilatiedosto voi sisältää salaisuuksia myös silloin, kun arvot on merkitty <code>sensitive</code>-merkinnällä. Suojaa state IAM-oikeuksilla ja salauksella, ota versiointi käyttöön äläkä tallenna sitä Gitiin. Pidä eri ympäristöillä omat tilansa.</p>
+  </div>
 
 <h3>Perusrakenne ja tilan tallennus</h3>
 <pre><code class="language-hcl">terraform {
@@ -295,6 +310,10 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "tfstate" {
   <li><span class="label">Ei pitkäaikaisia avaimia:</span> roolit ja OIDC poistavat tarpeen tallentaa AWS-avaimia CI-palveluun.</li>
 </ul>
 
+  <div class="tip">
+  <p><strong>Miten lupa ratkaistaan?</strong> Pyyntö on oletuksena kielletty. Tarvittavien politiikkojen on sallittava se, eikä mikään sovellettava politiikka saa erikseen kieltää sitä: eksplisiittinen <code>Deny</code> ohittaa sallinnan. Identiteettipolitiikka voidaan liittää käyttäjään tai rooliin, resurssipolitiikka taas esimerkiksi S3-bucketiin. Myös esimerkiksi permissions boundary ja organisaation SCP voivat rajata oikeuksia.</p>
+  </div>
+
 <h3>Esimerkki: palveluroolin luominen</h3>
 <pre><code class="language-hcl">data "aws_iam_policy_document" "ecs_assume" {
   statement {
@@ -347,6 +366,10 @@ resource "aws_iam_role_policy_attachment" "ecs_execution" {
   <li><span class="label">Usean AZ:n redundanssi:</span> kaksi aliverkkoa eri AZ:issa, jotta yksi datakeskuksen vika ei kaada palvelua.</li>
   <li><span class="label">Security Groupit:</span> sallitaan vain tarvittava liikenne, esim. ALB → sovellus porttiin 8000, sovellus → tietokanta porttiin 5432.</li>
 </ul>
+
+  <div class="tip">
+  <p><strong>Verkon suunnittelu ja vianetsintä:</strong> jokainen aliverkko sijaitsee yhdessä AZ:ssa. Varaa aliverkoille riittävästi osoitteita ja vältä päällekkäisiä CIDR-alueita, jos verkkoja yhdistetään myöhemmin. Security Group on tilallinen, joten sallitun yhteyden vastausliikenne sallitaan automaattisesti. Tarkista yhteysongelmissa Security Groupit, reitit ja DNS; VPC Flow Logs voi auttaa selvittämään hylättyä liikennettä. S3:n ja DynamoDB:n gateway-endpointit voivat vähentää NATin tarvetta, mutta muiden tarvittavien yhteyksien reititys on silti suunniteltava.</p>
+  </div>
 
 <h3>Esimerkki: VPC, aliverkot ja reititys</h3>
 <pre><code class="language-hcl">resource "aws_vpc" "main" {
@@ -580,6 +603,12 @@ resource "aws_secretsmanager_secret" "api_key" {
   <li><span class="label">Kehityksen Docker-vastine:</span> tuotannon kaltainen PostgreSQL ilman, että sitä tarvitsee ylläpitää itse.</li>
 </ul>
 
+  <h3>Saatavuus, palautus ja yhteydet</h3>
+  <div class="card">
+  <p><strong>Multi-AZ</strong> parantaa saatavuutta vikasiirtymän avulla; <strong>read replica</strong> palvelee erikseen lukukuormaa ja voi olla ensisijaista kantaa jäljessä. Kumpikaan ei korvaa varmuuskopiota. Pistekohtainen palautus palauttaa tietokannan uuteen instanssiin määritellyn säilytysajan sisällä, kun automaattiset varmuuskopiot ovat käytössä. Varmista palautuksen toimivuus harjoittelemalla.</p>
+  <p>Sovelluskopioiden tai samanaikaisten Lambda-kutsujen lisääminen voi kasvattaa tietokantayhteyksien määrää nopeasti. Seuraa yhteysmäärää ja harkitse yhteyspoolausta tai RDS Proxya. Seuraa myös vapaata levytilaa ja burstable-instanssien CPU-krediittejä.</p>
+  </div>
+
 <h3>Esimerkki</h3>
 <pre><code class="language-hcl">resource "aws_db_subnet_group" "db" {
   name       = "demo-db"
@@ -648,9 +677,13 @@ resource "aws_db_instance" "postgres" {
 <ul class="purpose-list">
   <li><span class="label">Sovelluksen ajo konteissa:</span> sama Docker-image toimii kehityksessä ja tuotannossa, ja kontit voi ajaa useana kopiona.</li>
   <li><span class="label">Automaattinen palautuminen:</span> ECS käynnistää kuolleen kontin uudelleen ja ylläpitää haluttua määrää (<code>desired_count</code>).</li>
-  <li><span class="label">Rolling deploy:</span> uusi versio käynnistyy vanhan rinnalle, ja liikenne siirtyy vasta terveenä. Virheen sattuessa vanha versio pysyy.</li>
-  <li><span class="label">Ei palvelinhallintaa:</span> ei käyttöjärjestelmäpäivityksiä, ei kapasiteettisuunnittelua.</li>
+  <li><span class="label">Rolling deploy:</span> ECS korvaa vanhoja tehtäviä uusilla julkaisun asetusten mukaan. Terveystarkistukset sekä erikseen käyttöön otettava deployment circuit breaker ja rollback auttavat epäonnistuneen julkaisun käsittelyssä.</li>
+  <li><span class="label">Ei palvelinhallintaa:</span> AWS ylläpitää Fargaten palvelinalustaa, mutta tehtävien CPU, muisti ja määrä on silti mitoitettava.</li>
 </ul>
+
+<div class="tip">
+<p><strong>Julkaisut ja pysyvä data:</strong> task definitionin muutoksesta syntyy uusi versio. Fargate-tehtävän paikallinen tallennus on väliaikaista, joten säilytä pysyvät tiedot esimerkiksi RDS:ssä, S3:ssa tai tarvittaessa EFS:ssä. Aja tietokantamigraatio hallittuna erillisenä tehtävänä: jos jokainen uusi web-kontti ajaa saman migraation, ne voivat kilpailla keskenään.</p>
+</div>
 
 <h3>Esimerkki: tehtävämääritys ja palvelu</h3>
 <pre><code class="language-hcl">resource "aws_cloudwatch_log_group" "app" {
@@ -779,11 +812,15 @@ resource "aws_ecs_service" "app" {
 <h3>Mihin sitä käytetään ja miksi</h3>
 <ul class="purpose-list">
   <li><span class="label">Monipalveluinen järjestelmä:</span> kun palveluita on kymmeniä ja niiden välillä on monimutkaisia riippuvuuksia, Kubernetesin deklaratiivinen malli (haluttu tila YAML:ssä, klusteri pitää sen yllä) pitää kokonaisuuden hallittavana.</li>
-  <li><span class="label">Siirrettävyys:</span> Kubernetes-manifestit toimivat samoin EKS:ssä, GKE:ssa, AKS:ssa ja omalla palvelimella. Tämä on tärkeää, jos haluat välttää lukkiutumisen yhteen pilveen.</li>
+  <li><span class="label">Siirrettävyys:</span> Kubernetesin peruskäsitteitä ja monia manifesteja voi hyödyntää EKS:ssä, GKE:ssa, AKS:ssa ja omalla palvelimella, vaikka palvelukohtaiset integraatiot vaativat muutoksia.</li>
   <li><span class="label">Itseparantuminen ja rullaavat päivitykset:</span> Deployment korvaa kuolleet podit, ja readiness-probe estää liikenteen rikkinäisiin versioihin. Canary-julkaisut onnistuvat Argo Rollouts -työkalulla.</li>
   <li><span class="label">Ekosysteemi:</span> Helm-kaaviot, Operaattorit ja valmiit monitorointipinot (esim. Prometheus) löytyvät suoraan, eikä niitä tarvitse kirjoittaa itse.</li>
   <li><span class="label">Oppiminen:</span> Kubernetes-osaaminen on työmarkkinoilla yleisesti haettu taito. Jos käytät jo K3s:ää kotipalvelimella, käsitteet (Pod, Deployment, Service, Ingress, ConfigMap, Secret) siirtyvät EKS:ään suoraan.</li>
 </ul>
+
+  <div class="tip">
+  <p><strong>ECS vai EKS?</strong> ECS Fargate on luonteva aloitus, kun haluat ajaa kontteja AWS:ssä ilman Kubernetesin hallintaa. EKS sopii, kun Kubernetesin ekosysteemi tai olemassa oleva osaaminen tuo riittävää hyötyä suhteessa lisätyöhön. Huomioi klusterin, lisäosien ja solmujen päivitykset sekä verkko-osoitteiden riittävyys. Kubernetesin peruskäsitteet ovat siirrettäviä, mutta AWS-integraatiot vaativat ympäristökohtaisia muutoksia.</p>
+  </div>
 
 <h3>Milloin EKS ei kannata</h3>
 <ul class="purpose-list">
@@ -830,11 +867,15 @@ resource "aws_ecs_service" "app" {
 
 <h3>Mihin sitä käytetään ja miksi</h3>
 <ul class="purpose-list">
-  <li><span class="label">Terveyden tarkistus:</span> ALB poistaa kontit, jotka eivät vastaa <code>/health/</code>-polkuun, joten rikkinäinen versio ei saa liikennettä.</li>
-  <li><span class="label">Nollakatkoinen deploy:</span> uusi ECS-tehtävä rekisteröityy kohderyhmään vasta, kun se on terve.</li>
+  <li><span class="label">Terveyden tarkistus:</span> ALB tarkistaa kohteiden tilan esimerkiksi <code>/health/</code>-polusta ja ohjaa liikennettä tavallisesti terveille kohteille. Jos kaikki rekisteröidyt kohteet ovat epäterveitä, ALB voi kuitenkin ohjata liikennettä myös niille.</li>
+  <li><span class="label">Hallittu deploy:</span> ECS rekisteröi uudet tehtävät kohderyhmään ja käyttää terveystarkistuksia julkaisussa. Katkoton julkaisu edellyttää sopivaa kapasiteettia, terveystarkistuksia ja julkaisuasetuksia.</li>
   <li><span class="label">TLS-päätepiste:</span> sertifikaatti on ALB:llä, sovellus voi puhua HTTP:tä sisäverkossa.</li>
   <li><span class="label">Polkureititys:</span> yksi domain, useita palveluita (monoliitti vs. API + frontend).</li>
 </ul>
+
+<div class="tip">
+<p><strong>Health check käytännössä:</strong> valitse tarkistuspolku sen mukaan, milloin tehtävän oikeasti pitää vastaanottaa liikennettä. Liian raskas tai herkästi epäonnistuva riippuvuustarkistus voi merkitä kaikki kohteet epäterveiksi; pelkkä prosessin vastaus ei puolestaan todista, että kaikki sovelluksen riippuvuudet toimivat. Seuraa erikseen riippuvuuksien tilaa ja testaa valittu toimintatapa.</p>
+</div>
 
 <h3>Esimerkki</h3>
 <pre><code class="language-hcl">resource "aws_lb" "app" {
@@ -901,6 +942,18 @@ resource "aws_lb_listener" "http" {
   <li><span class="label">Kustannushallinta:</span> lokeille voi asettaa säilytysajan (<code>retention_in_days</code>), muuten lokit kertyvät ja maksavat.</li>
 </ul>
 
+  <h3>Mitä seurata?</h3>
+  <div class="card">
+  <table>
+    <tr><th>Kohde</th><th>Esimerkki</th><th>Mitä se auttaa havaitsemaan</th></tr>
+    <tr><td>ALB</td><td>Kohteiden 5xx-virheet ja epäterveet kohteet</td><td>Sovellusvirheet ja epäonnistuvat terveystarkistukset.</td></tr>
+    <tr><td>ECS</td><td>CPU- ja muistinkäyttö sekä käynnissä olevien tehtävien määrä</td><td>Mitoitusongelmat ja puuttuvat tehtävät.</td></tr>
+    <tr><td>RDS</td><td>Vapaa levytila, yhteydet ja CPU-krediitit</td><td>Tallennus- tai yhteysrajan lähestyminen sekä suorituskykyongelmat.</td></tr>
+    <tr><td>SQS ja Lambda</td><td>DLQ:n viestimäärä, funktion virheet ja rajoitukset</td><td>Epäonnistunut tai ruuhkautunut tapahtumakäsittely.</td></tr>
+  </table>
+  <p>Valitse hälytysrajat oman kuorman perusteella, päätä miten puuttuva mittausdata käsitellään ja testaa ilmoituksen perillemeno. AWS Budgets täydentää teknisiä hälytyksiä kustannusten seurannalla.</p>
+  </div>
+
 <h3>Esimerkki: hälytys sovelluskonttien 5xx-virheille</h3>
 <p>Tässä mittari laskee kohdepalvelimen (esimerkiksi Django-kontin) palauttamat 5xx-virheet. ALB:n itsensä tuottamat 5xx-virheet ovat eri mittari: <code>HTTPCode_ELB_5XX_Count</code>.</p>
 <pre><code class="language-hcl">resource "aws_sns_topic" "alerts" {
@@ -957,6 +1010,10 @@ resource "aws_cloudwatch_metric_alarm" "target_5xx" {
   <li><span class="label">Varmuuskopiot:</span> ylimääräinen kopio tietokannan dumpeista, versioinnilla ja elinkaarisäännöillä.</li>
 </ul>
 
+  <div class="tip">
+  <p><strong>Versiointi ja elinkaari:</strong> S3:n objektiversiointi auttaa palauttamaan aiemman version vahingossa tehdyn muutoksen tai poiston jälkeen, mutta vanhat versiot kuluttavat tallennustilaa. Määritä tarvittaessa elinkaarisäännöt myös vanhoille versioille ja keskeneräisille multipart-latauksille. S3:n korkea kestävyys ei yksin suojaa virheellisiltä poistoilta tai liian laajoilta käyttöoikeuksilta.</p>
+  </div>
+
 <h3>Esimerkki: suojattu bucket</h3>
 <pre><code class="language-hcl">resource "aws_s3_bucket" "media" {
   bucket = "toni-devops-demo-media-eu-north-1"
@@ -1009,6 +1066,10 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "media" {
   <li><span class="label">Alkuperän suojaus:</span> Origin Access Control (OAC) sallii CloudFrontin lukea S3:a, mutta ei julkista pääsyä bucketiin.</li>
   <li><span class="label">Kuorman vähennys:</span> välimuistissa olevat pyynnöt eivät osu sovellukseen tai tietokantaan.</li>
 </ul>
+
+  <div class="tip">
+  <p><strong>Välimuistin suunnittelu:</strong> CloudFrontin behavior määrittää, mitä originia ja välimuistiasetuksia tietty polku käyttää. Staattisille, sisältöön perustuvilla nimillä versioiduille tiedostoille voi käyttää pitkää säilytysaikaa. Dynaamisille tai käyttäjäkohtaisille vastauksille valitse käytäntö erikseen: varmista, ettei yhden käyttäjän tietoja tarjota toiselle välimuistista, ja välitä originille vain tarvittavat otsikot ja evästeet.</p>
+  </div>
 
 <h3>Esimerkki</h3>
 <pre><code class="language-hcl">resource "aws_cloudfront_origin_access_control" "media" {
@@ -1251,6 +1312,10 @@ resource "aws_instance" "vps" {
   <li><span class="label">Kun kuorma on epätasainen:</span> ei kiinteää kapasiteettia, joka seisoo tyhjillään yöllä.</li>
 </ul>
 
+  <div class="tip">
+  <p><strong>Suoritus ja rajat:</strong> yksittäisen Lambda-suorituksen enimmäiskesto on 15 minuuttia. Pidemmälle työlle voi sopia esimerkiksi ajastettu ECS-tehtävä. Lambda voi käynnistää useita suorituksia samanaikaisesti, joten rajaa tarvittaessa rinnakkaisuutta, jos taustalla oleva tietokanta ei kestä yhteysmäärää. VPC:hen liitetyn funktion yhteys yksityiseen RDS:ään ei automaattisesti anna sille internet-yhteyttä: suunnittele tarvittavat reitit ja endpointit.</p>
+  </div>
+
 <h3>Esimerkki: ajastettu ETL-funktio konttina</h3>
 <pre><code class="language-hcl">data "aws_iam_policy_document" "lambda_assume" {
   statement {
@@ -1331,6 +1396,10 @@ resource "aws_lambda_permission" "allow_events" {
   <li><span class="label">Ei salaisuuksia repossa:</span> OIDC antaa putkelle väliaikaisen roolin, joka vanhenee automaattisesti.</li>
   <li><span class="label">Turvallisuus:</span> rooli rajataan vain tiettyyn repositorioon ja haaraan.</li>
 </ul>
+
+  <div class="tip">
+  <p><strong>Turvallinen julkaisuketju:</strong> testaa sovellus ja tarkista image ennen julkaisua. Rajaa OIDC-roolin luottamuspolitiikan <code>aud</code>- ja <code>sub</code>-ehdot oikeaan AWS-kohteeseen sekä GitHub-repositorioon ja haaraan tai ympäristöön. Erota infrastruktuurin katselmoitava <code>plan</code> ja hallitusti hyväksytty <code>apply</code> sovelluksen julkaisusta. Kiinnitä ulkopuoliset GitHub Actionit tarvittaessa commit-SHA:han ja vältä salaisuuksien tulostamista lokeihin.</p>
+  </div>
 
 <h3>Esimerkki: OIDC-luottamus ja rooli</h3>
 <pre><code class="language-hcl">resource "aws_iam_openid_connect_provider" "github" {
@@ -1465,6 +1534,19 @@ Dead-letter-jono    (käsittelemättömät viestit talteen)</code></pre>
 <p><span class="label">Hinta (suuntaa antava):</span> AWS:n omat tapahtumat oletusväylällä ovat ilmaisia. Oma väylä maksaa noin 1 $ miljoonasta tapahtumasta. Scheduler sisältää ilmaisia ajoja kuukaudessa, sen jälkeen maksu per ajo.</p>
 </div>
 
+<h3>Esimerkki tapahtumien suodatuksesta</h3>
+<div class="card">
+<p>EventBridge-säännön tapahtumakuvio voi valita vain tietyn sovelluksen tilaukset, joiden summa ylittää 100. Tämä on kelvollista JSONia; todellisen tapahtuman kenttien ja tietotyyppien on vastattava kuviota.</p>
+<pre><code class="language-json">{
+  "source": ["myapp.orders"],
+  "detail-type": ["OrderCreated"],
+  "detail": {
+    "total": [{ "numeric": ["&gt;", 100] }]
+  }
+}</code></pre>
+<p>Testaa kuvio esimerkkitapahtumilla ja suunnittele myös kohteen virheenkäsittely ja uudelleenyritykset.</p>
+</div>
+
 <h3>Amazon SNS (Simple Notification Service)</h3>
 <div class="card">
 <p><span class="label">Mitä se on:</span> Pub/sub-aihe (topic), johon julkaistaan viesti ja joka monistaa sen kaikille tilaajille: SQS-jonoille, Lambdalle, HTTP-päätepisteille, sähköpostille, SMS:lle ja mobiilipushille.</p>
@@ -1485,6 +1567,12 @@ Dead-letter-jono    (käsittelemättömät viestit talteen)</code></pre>
 </ul>
 <p><span class="label">Ratkaisee:</span> kuormanpuskurointi (piikit eivät kaada tietokantaa), palveluiden irrotus, uudelleenyritykset ja se, että työntekijä voi olla hetken alhaalla ilman datan katoamista.</p>
 <p><span class="label">Hinta (suuntaa antava):</span> ensimmäiset miljoona pyyntöä kuukaudessa ilmaisia aina. Sen jälkeen noin 0,40 $ per miljoona pyyntöä Standard-jonossa. Käytännössä jonot ovat yleensä hyvin halpoja.</p>
+</div>
+
+<h3>SQS ja Lambda: erän virheenkäsittely</h3>
+<div class="card">
+<p>Lambda käsittelee SQS-viestejä erissä. Oletuksena erän epäonnistuminen voi johtaa siihen, että myös jo onnistuneita viestejä käsitellään uudelleen. <em>Partial batch response</em> mahdollistaa epäonnistuneiden viestitunnisteiden palauttamisen, kun event source mappingissa on käytössä <code>ReportBatchItemFailures</code>. Käsittelyn on silti oltava idempotenttia. FIFO-jonossa säilytä viestiryhmän järjestys: lopeta käsittely ensimmäiseen virheeseen ja ilmoita myös käsittelemättä jääneet viestit epäonnistuneiksi.</p>
+<p>AWS suosittelee SQS-jonon visibility timeoutiksi vähintään kuusi kertaa funktion aikarajan sekä mahdollisen batching-ikkunan. Määritä myös DLQ ja hälytys, ja testaa virhetilanteet ennen tuotantokäyttöä.</p>
 </div>
 
 <h3>Lambda-tapahtumalähteet</h3>
@@ -1531,6 +1619,18 @@ Dead-letter-jono    (käsittelemättömät viestit talteen)</code></pre>
 <p><span class="label">Liittyy muihin:</span> Lambda, EventBridge, Kinesis (DynamoDB Streamsin voi kytkeä Kinesisiin), OpenSearch (indeksointi muutoksista).</p>
 <p><span class="label">Ratkaisee:</span> välimuistin päivitys, hakuindeksin ylläpito, muutosloki ja tiedoston käsittely heti latauksen jälkeen. Muutokset tulevat ilman, että sovellus kertoo niistä erikseen (eikä tarvitse muistaa kirjoittaa kahteen paikkaan).</p>
 <p><span class="label">Hinta:</span> DynamoDB Streams ei maksa erikseen, mutta lukuja laskutetaan normaalisti. S3-tapahtumista maksetaan kohteen (Lambda, SQS jne.) hinta.</p>
+</div>
+
+<h3>Palvelun valinta tapahtumatarpeeseen</h3>
+<div class="card">
+<table>
+  <tr><th>Tarve</th><th>Mahdollinen valinta</th></tr>
+  <tr><td>Työjono ja kuormapiikkien tasaaminen</td><td>SQS: kuluttaja käsittelee viestit omaan tahtiinsa.</td></tr>
+  <tr><td>Sama viesti usealle itsenäiselle kuluttajalle</td><td>SNS ja erilliset SQS-jonot tai EventBridge-säännöt.</td></tr>
+  <tr><td>Reititys tapahtuman sisällön perusteella</td><td>EventBridge: sääntöjen tapahtumakuviot.</td></tr>
+  <tr><td>Monivaiheisen prosessin tilan ja virheiden hallinta</td><td>Step Functions: tilakone, haarautuminen ja uudelleenyritykset.</td></tr>
+</table>
+<p>Serverless-HTTP-rajapinnalle voi käyttää API Gatewayta tai yksinkertaisempaa Lambda Function URL -osoitetta; vertaa tunnistautumis- ja muita ominaisuustarpeita. DynamoDB voi sopia ennakkoon suunniteltuihin avainpohjaisiin hakuihin, kun taas RDS sopii relaatiodatalle ja SQL-liitoksia tarvitseviin kyselyihin.</p>
 </div>
 
 <h3>Mitä event-driven-järjestelmässä pitää muistaa</h3>
@@ -1583,8 +1683,28 @@ Dead-letter-jono    (käsittelemättömät viestit talteen)</code></pre>
   <tr><td>Mikä on Fargaten ja EC2:n ero?</td><td>Fargatessa AWS hallitsee palvelimet, EC2:ssa hallitset itse käyttöjärjestelmän.</td></tr>
 </table>
 
+  <h3>Päätelmäharjoitukset: valitse palvelut</h3>
+  <p>Pohdi ensin itse vaihtoehtoa, vertaile kustannuksia ja ylläpitovastuuta ja avaa sitten ehdotus. Myös muut ratkaisut voivat sopia, jos vaatimukset ovat erilaiset.</p>
+  <details>
+    <summary>Pieni kontitettu web-sovellus, jonka palvelimia ei haluta ylläpitää</summary>
+    <p>ECS Fargate ja ALB ovat yksi vaihtoehto. Huomioi jatkuvasti käynnissä olevien tehtävien, ALB:n ja mahdollisen tietokannan kustannukset sekä terveystarkistukset. Hyvin pienessä projektissa EC2 tai Lightsail voi olla edullisempi, mutta käyttöjärjestelmän ja varmuuskopioiden ylläpito jää enemmän omalle vastuulle.</p>
+  </details>
+  <details>
+    <summary>Päivittäin ajettava lyhyt tiedostonkäsittely</summary>
+    <p>EventBridge Scheduler voi käynnistää Lambdan. Jos ajo ylittää Lambdan 15 minuutin rajan, harkitse ajastettua ECS-tehtävää. Lisää lokitus, virheilmoitus ja tarvittavat uudelleenyritykset.</p>
+  </details>
+  <details>
+    <summary>Kuvan lataus aiheuttaa käsittelypiikin</summary>
+    <p>S3-tapahtuma voidaan ohjata SQS-jonoon ja käsitellä Lambdalla. Jono tasaa kuormaa; idempotentti käsittelijä, DLQ ja hälytys auttavat selviytymään virheistä ja viestien uudelleentoimituksesta.</p>
+  </details>
+  <details>
+    <summary>Relaatiotietokannasta poistetaan vahingossa rivejä</summary>
+    <p>Multi-AZ ei korvaa varmuuskopiota, koska virhe voi siirtyä myös varakantaan. Selvitä palautuspiste ja palauta varmuuskopiosta uuteen tietokantaan, jos pistekohtainen palautus on käytössä. Varmista etukäteen, että palautusta on harjoiteltu ja tarvittava data saadaan takaisin.</p>
+  </details>
+
 <div class="tip">
 <p><strong>Seuraava askel:</strong> Kun perusversio toimii, lisää esimerkiksi oma domain, HTTPS, yksityisiin aliverkkoihin siirretyt ECS-tehtävät, VPC endpoint -päätepisteet ja sovelluksen automatisoidut testit. Lisää ominaisuuksia yksi kerrallaan, jotta niiden vaikutus kustannuksiin ja arkkitehtuuriin on helppo ymmärtää.</p>
+</div>
 </div>
 </section>
 
@@ -1603,13 +1723,15 @@ Dead-letter-jono    (käsittelemättömät viestit talteen)</code></pre>
   <tr><td>Target group</td><td>ALB:n kohdejoukko, jolle liikenne ohjataan ja jonka terveydentilaa seurataan.</td></tr>
   <tr><td>OIDC</td><td>Tapa vaihtaa identiteettipalvelun myöntämä tunniste AWS:n lyhytikäisiin roolitunnuksiin ilman pitkäaikaista avainparia.</td></tr>
   <tr><td>Idempotentti</td><td>Toiminto, jonka toistaminen ei muuta lopputulosta ensimmäisen onnistuneen suorituksen jälkeen.</td></tr>
+  <tr><td>RPO / RTO</td><td>Palautumispistetavoite: kuinka paljon dataa voi menettää / palautumisaikatavoite: kuinka nopeasti palvelu on palautettava.</td></tr>
+  <tr><td>Drift</td><td>Infrastruktuurin todellisen tilan ero Terraform-määrityksiin nähden, esimerkiksi konsolissa tehdyn muutoksen jälkeen.</td></tr>
 </table>
 </div>
 </section>
 
 <footer>
   <p>Kurssi on tarkoitettu oppimiseen. Palveluiden ominaisuudet, hinnat ja käyttöehdot muuttuvat. Tarkista ennen käyttöönottoa tiedot AWS:n virallisesta dokumentaatiosta ja AWS Pricing Calculatorista. Koodiesimerkit ovat opetuksellisia lähtökohtia, eivät sellaisenaan tuotantovalmiita määrityksiä.</p>
-  <p class="small-note">Versio: 17.11.2026. Materiaali painottaa ymmärrettävää perusarkkitehtuuria; yksittäiset esimerkit on sovitettava oman sovelluksen, alueen ja turvallisuusvaatimusten mukaan.</p>
+  <p class="small-note">Versio: 18.11.2026. Materiaali painottaa ymmärrettävää perusarkkitehtuuria; yksittäiset esimerkit on sovitettava oman sovelluksen, alueen ja turvallisuusvaatimusten mukaan.</p>
 </footer>
 
 </main>
