@@ -9,8 +9,8 @@ esimerkkejä ja harjoituksia itsenäisen opiskelun tueksi.
 - [AWS DevOps -pikakurssi](aws-devops-kurssi.html): AWS:n keskeiset palvelut,
   Terraform, kontit, tietoturva ja CI/CD.
 - [Selkeytetty AWS DevOps -kurssi](aws-devops-kurssi-selkeytetty.html):
-  pikakurssin oppimistavoitteilla, opiskelujärjestyksellä, harjoituksilla ja
-  sanastolla täydennetty versio.
+  pikakurssin oppimistavoitteilla, opiskelujärjestyksellä, arkkitehtuurin
+  perusteilla, palveluvalintojen harjoituksilla ja sanastolla täydennetty versio.
 - [Terraform-opetusmateriaali](terraform-opetusmateriaali.html): HCL-syntaksi,
   resurssit, tilanhallinta, komennot ja käytännön harjoitukset.
 

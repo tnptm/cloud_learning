@@ -1,4 +1,9 @@
 #!/bin/sh
+
+# Käynnistää paikallisen PHP-kehityspalvelimen kurssin indeksiä varten
+
+
+# Tarkistetaan, että PHP on asennettu ja käytettävissä
 set -e
 
 if ! command -v php >/dev/null 2>&1; then
