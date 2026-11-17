@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Terraformin ja HCL-kielen opetusmateriaali: syntaksi, resurssit, muuttujat, moduulit, state, komentorivi ja CI/CD.">
+  <title>Terraform – syntaksi ja komentojen opetusmateriaali</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb; --surface: #fff; --surface-2: #f0f4fa;
+      --text: #182235; --muted: #5e6b80; --line: #e1e7f0;
+      --accent: #6558d3; --accent-soft: #eeecff; --green: #16845b;
+      --code: #111827; --code-text: #e5edf8; --shadow: 0 12px 34px rgba(26, 39, 67, .07);
+      --radius: 16px; --content: 1120px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 92px; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.72 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .topbar { position: sticky; top: 0; z-index: 5; background: rgba(255,255,255,.88); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+    .topbar-inner { max-width: var(--content); margin: auto; padding: 13px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 11px; font-weight: 750; letter-spacing: -.02em; }
+    .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: white; background: linear-gradient(135deg,#7768ed,#4d43b7); font-weight: 800; }
+    .topbar small { color: var(--muted); }
+    .layout { max-width: var(--content); margin: 34px auto 80px; padding: 0 24px; display: grid; grid-template-columns: 245px minmax(0,1fr); gap: 30px; align-items: start; }
+    aside { position: sticky; top: 82px; max-height: calc(100vh - 100px); overflow: auto; padding: 18px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+    aside strong { display: block; padding: 0 10px 10px; font-size: .78rem; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); }
+    aside a { display: block; padding: 6px 10px; border-radius: 8px; color: #46536a; font-size: .88rem; line-height: 1.45; }
+    aside a:hover { background: var(--accent-soft); color: var(--accent); text-decoration: none; }
+    main { min-width: 0; }
+    .hero { padding: 42px 44px; color: white; border-radius: 22px; background: radial-gradient(circle at 85% 15%,rgba(255,255,255,.2),transparent 26%), linear-gradient(125deg,#28265e,#554bc1 62%,#796de9); box-shadow: var(--shadow); }
+    .eyebrow { display: inline-block; padding: 5px 10px; border: 1px solid rgba(255,255,255,.32); border-radius: 999px; color: #e6e4ff; font-size: .78rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; }
+    h1 { max-width: 760px; margin: 18px 0 12px; font-size: clamp(2.2rem,5vw,3.5rem); line-height: 1.08; letter-spacing: -.045em; }
+    .hero p { max-width: 760px; margin: 0; color: #e9e8ff; font-size: 1.08rem; }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 25px; }
+    .hero-meta span { padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,.13); color: #f5f4ff; font-size: .82rem; }
+    .intro-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin: 20px 0 34px; }
+    .mini-card { padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+    .mini-card b { display: block; margin-bottom: 4px; }
+    .mini-card span { color: var(--muted); font-size: .9rem; }
+    section { margin-top: 34px; padding: 30px 32px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+    h2 { margin: 0 0 17px; font-size: 1.7rem; line-height: 1.25; letter-spacing: -.03em; }
+    h3 { margin: 27px 0 9px; font-size: 1.18rem; letter-spacing: -.015em; }
+    h4 { margin: 20px 0 7px; font-size: 1rem; }
+    p { margin: 9px 0 14px; }
+    .lead { color: var(--muted); font-size: 1.04rem; }
+    ul, ol { padding-left: 1.35rem; }
+    li { margin: 5px 0; }
+    code { padding: .13em .38em; border-radius: 5px; background: #edf0f6; color: #413b83; font: .9em ui-monospace, SFMono-Regular, Consolas, monospace; }
+    pre { position: relative; overflow: auto; margin: 14px 0 18px; padding: 19px 21px; border: 1px solid #273348; border-radius: 12px; background: var(--code); color: var(--code-text); font: .88rem/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; tab-size: 2; }
+    pre code { padding: 0; background: none; color: inherit; font: inherit; }
+    .note, .warning, .tip { margin: 16px 0; padding: 14px 17px; border-radius: 10px; border-left: 4px solid var(--accent); background: var(--accent-soft); }
+    .warning { border-left-color: #d28a22; background: #fff7e8; }
+    .tip { border-left-color: var(--green); background: #eaf7f1; }
+    .note strong, .warning strong, .tip strong { display: block; margin-bottom: 3px; }
+    table { width: 100%; margin: 15px 0 20px; border-collapse: collapse; font-size: .93rem; }
+    th, td { padding: 11px 13px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+    th { background: var(--surface-2); color: #354157; font-weight: 700; }
+    tr:last-child td { border-bottom: 0; }
+    .flow { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin: 20px 0; }
+    .flow div { position: relative; padding: 16px 12px; border: 1px solid #dcd8ff; border-radius: 12px; background: var(--accent-soft); text-align: center; }
+    .flow b { display: block; color: #433a9a; }
+    .flow span { display: block; margin-top: 3px; color: var(--muted); font-size: .82rem; }
+    .checklist { padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: #fbfcff; }
+    .checklist label { display: flex; gap: 10px; align-items: flex-start; margin: 9px 0; cursor: pointer; }
+    .checklist input { margin-top: 6px; accent-color: var(--accent); }
+    .progress { height: 8px; overflow: hidden; margin: 10px 0 15px; border-radius: 99px; background: #e8ebf2; }
+    .progress span { display: block; width: 0; height: 100%; background: var(--green); transition: width .2s; }
+    .resources li { margin: 9px 0; }
+    footer { padding: 25px 8px; color: var(--muted); text-align: center; font-size: .86rem; }
+    @media (max-width: 850px) { .layout { grid-template-columns: 1fr; margin-top: 20px; } aside { position: static; max-height: none; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); } aside strong { grid-column: 1/-1; } }
+    @media (max-width: 600px) { .layout { padding: 0 13px; } .hero { padding: 30px 24px; } section { padding: 23px 19px; } .intro-grid { grid-template-columns: 1fr; } .flow { grid-template-columns: repeat(2,1fr); } aside { grid-template-columns: 1fr; } .topbar-inner { padding-inline: 15px; } }
+    @media print { body { background: white; } .topbar, aside { display: none; } .layout { display: block; max-width: none; margin: 0; padding: 0; } .hero, section { box-shadow: none; break-inside: avoid; } section { border: 0; padding: 18px 0; } pre { white-space: pre-wrap; } a { color: inherit; } }
+  </style>
+</head>
+<body>
+  <header class="topbar"><div class="topbar-inner"><div class="brand"><span class="brand-mark">T</span><span>DevOps Learning · Terraform</span></div><small>Opetusmateriaali</small></div></header>
+  <div class="layout">
+    <aside aria-label="Sisällysluettelo"><strong>Sisällysluettelo</strong>
+      <a href="#toimintaperiaate">1. Toimintaperiaate</a><a href="#asennus">2. Asennus ja projektirakenne</a><a href="#hcl">3. HCL-syntaksi</a><a href="#lohkot">4. Lohkot ja käsitteet</a><a href="#ehdot">5. Ehdot ja silmukat</a><a href="#riippuvuudet">6. Riippuvuudet</a><a href="#lifecycle">7. Lifecycle</a><a href="#moduulit">8. Moduulit</a><a href="#state">9. State ja backend</a><a href="#komennot">10. CLI-komennot</a><a href="#tyonkulku">11. Työnkulku</a><a href="#workspaces">12. Workspaces</a><a href="#debug">13. Debuggaus</a><a href="#git">14. Git</a><a href="#cicd">15. CI/CD</a><a href="#kaytannot">16. Hyvät käytännöt</a><a href="#harjoitukset">17. Harjoitukset</a><a href="#dokumentaatio">18. Dokumentaatio</a><a href="#yhteenveto">19. Yhteenveto</a>
+    </aside>
+    <main>
+      <header class="hero">
+        <span class="eyebrow">Infrastructure as Code</span>
+        <h1>Terraform – syntaksi ja komentojen opetusmateriaali</h1>
+        <p>Opi määrittelemään, suunnittelemaan ja hallitsemaan infrastruktuuria koodilla. Materiaali kattaa HCL-kielen perusteet, Terraformin keskeiset lohkot, komentorivityökalut sekä käytännön DevOps-työnkulun.</p>
+        <div class="hero-meta"><span>HCL</span><span>Terraform CLI</span><span>Providers &amp; Modules</span><span>State management</span><span>CI/CD</span></div>
+      </header>
+      <div class="intro-grid"><div class="mini-card"><b>Kenelle?</b><span>Ohjelmistokehittäjille ja DevOps-opiskelijoille.</span></div><div class="mini-card"><b>Mitä opit?</b><span>Terraform-syntaksin ja infrastruktuurin hallinnan perusteet.</span></div><div class="mini-card"><b>Miten harjoittelet?</b><span>Esimerkkien ja vaiheittaisten tehtävien avulla.</span></div></div>
+
+      <section id="toimintaperiaate"><h2>1. Terraformin toimintaperiaate</h2>
+        <p class="lead">Terraform on HashiCorpin kehittämä Infrastructure as Code (IaC) -työkalu, jolla infrastruktuuria määritellään, hallitaan ja ylläpidetään ohjelmallisesti.</p>
+        <p>Sen avulla voidaan esimerkiksi luoda virtuaalikoneita, verkkoja, tietokantoja, palomuureja ja muita pilvipalveluiden resursseja. Terraform perustuu <strong>deklaratiiviseen toimintamalliin</strong>: kehittäjä määrittelee halutun lopputuloksen eikä kaikkia yksittäisiä vaiheita, joilla siihen päästään.</p>
+        <div class="flow"><div><b>1. Configuration</b><span>Kirjoitetaan .tf-tiedostot</span></div><div><b>2. Plan</b><span>Suunnitellaan tarvittavat muutokset</span></div><div><b>3. Apply</b><span>Toteutetaan muutokset</span></div><div><b>4. State</b><span>Tallennetaan resurssien tila</span></div></div>
+        <p>Terraform vertaa määriteltyä tavoitetilaa nykyiseen tilaan ja muodostaa suunnitelman tarvittavista muutoksista. Se ei ole sidottu yhteen pilvipalveluun: sitä voidaan käyttää esimerkiksi AWS:n, Azuren, Google Cloudin ja paikallisten resurssien hallintaan.</p>
+      </section>
+
+      <section id="asennus"><h2>2. Asennus ja projektirakenne</h2><p>Terraformia käytetään komentoriviltä. Asennuksen jälkeen tarkista ohjelman versio:</p><pre><code>terraform version</code></pre>
+        <p>Tyypillinen Terraform-projekti voi sisältää seuraavat tiedostot:</p><pre><code>terraform-project/
+├── main.tf
+├── variables.tf
+├── outputs.tf
+├── providers.tf
+├── terraform.tfvars
+└── .terraform.lock.hcl</code></pre>
+        <table><thead><tr><th>Tiedosto</th><th>Tarkoitus</th></tr></thead><tbody><tr><td><code>main.tf</code></td><td>Infrastruktuurin resurssimääritykset.</td></tr><tr><td><code>variables.tf</code></td><td>Syötettävien muuttujien määrittely.</td></tr><tr><td><code>outputs.tf</code></td><td>Tulostettavat arvot.</td></tr><tr><td><code>providers.tf</code></td><td>Käytettävien palveluntarjoajien määritys.</td></tr><tr><td><code>terraform.tfvars</code></td><td>Muuttujien arvot.</td></tr><tr><td><code>.terraform.lock.hcl</code></td><td>Provider-versioiden lukitus.</td></tr></tbody></table>
+        <div class="tip"><strong>Hyvä tietää</strong>Terraform lukee automaattisesti nykyisen hakemiston kaikki <code>.tf</code>- ja <code>.tf.json</code>-tiedostot. Tiedostojen jakaminen on projektin organisointia varten, ei tekninen vaatimus.</div>
+      </section>
+
+      <section id="hcl"><h2>3. HCL – HashiCorp Configuration Language</h2><p>Terraform käyttää määrityskieltä nimeltä HCL. Sen syntaksi on helposti luettavaa ja muistuttaa rakenteeltaan JSONia.</p>
+        <h3>3.1 Kommentit</h3><pre><code># Yhden rivin kommentti
+// Myös tämä on yhden rivin kommentti
+
+/*
+  Monirivinen kommentti.
+  Voidaan käyttää pidempiin selityksiin.
+*/</code></pre>
+        <h3>3.2 Perustietotyypit</h3><pre><code># String
+name = "web-server"
+
+# Number
+instance_count = 2
+
+# Boolean
+enabled = true
+
+# List
+availability_zones = ["eu-north-1a", "eu-north-1b"]
+
+# Map
+tags = {
+  Environment = "development"
+  Owner       = "devops"
+}</code></pre>
+        <table><thead><tr><th>Tyyppi</th><th>Selitys</th><th>Esimerkki</th></tr></thead><tbody><tr><td><code>string</code></td><td>Merkkijono</td><td><code>"hello"</code></td></tr><tr><td><code>number</code></td><td>Numero</td><td><code>10</code>, <code>3.14</code></td></tr><tr><td><code>bool</code></td><td>Totuusarvo</td><td><code>true</code>, <code>false</code></td></tr><tr><td><code>list</code></td><td>Järjestetty kokoelma</td><td><code>["a", "b"]</code></td></tr><tr><td><code>set</code></td><td>Uniikkien arvojen kokoelma</td><td><code>toset(["a", "b"])</code></td></tr><tr><td><code>map</code></td><td>Avain-arvo-kokoelma</td><td><code>{ env = "dev" }</code></td></tr><tr><td><code>object</code></td><td>Rakenteinen tietotyyppi</td><td><code>{ name = string }</code></td></tr><tr><td><code>tuple</code></td><td>Kiinteärakenteinen kokoelma</td><td><code>[string, number]</code></td></tr></tbody></table>
+        <h3>3.3 Lohkot (Blocks)</h3><p>Terraformin määritykset koostuvat lohkoista. Yleinen rakenne:</p><pre><code>block_type "label1" "label2" {
+  argument = value
+}</code></pre>
+        <p>Esimerkki resurssilohkosta:</p><pre><code>resource "aws_instance" "web" {
+  ami           = "ami-12345678"
+  instance_type = "t3.micro"
+}</code></pre>
+        <ul><li><code>resource</code> määrittää lohkotyypin.</li><li><code>aws_instance</code> kertoo resurssin tyypin.</li><li><code>web</code> on resurssin paikallinen nimi.</li></ul>
+        <h3>3.4 String-interpolaatio</h3><p>Muuttujien ja muiden arvojen sisällyttäminen merkkijonoon tapahtuu <code>${}</code>-syntaksilla.</p><pre><code>variable "environment" {
+  default = "development"
+}
+
+resource "example_resource" "app" {
+  name = "application-${var.environment}"
+}</code></pre>
+        <h3>3.5 Funktiot</h3><p>Terraform sisältää valmiita funktioita merkkijonojen, listojen, numeroiden ja muiden arvojen käsittelyyn.</p><pre><code>upper("terraform")
+lower("TERRAFORM")
+length(["one", "two", "three"])
+join("-", ["web", "server", "01"])
+element(["a", "b", "c"], 0)
+replace("hello-world", "-", "_")</code></pre>
+      </section>
+
+      <section id="lohkot"><h2>4. Terraformin tärkeimmät lohkotyypit</h2>
+        <h3>4.1 Provider – palveluntarjoaja</h3><p>Provider on lisäosa, jonka avulla Terraform kommunikoi ulkoisen palvelun tai järjestelmän kanssa.</p><pre><code>terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~&gt; 6.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "eu-north-1"
+}</code></pre>
+        <ul><li><code>required_providers</code> määrittelee tarvittavat providerit.</li><li><code>source</code> kertoo providerin lähteen Terraform Registryssä.</li><li><code>version</code> määrittelee sallitun version.</li><li><code>region</code> kertoo AWS-alueen.</li></ul>
+        <div class="warning"><strong>Tunnistautuminen</strong>Providerin tunnistautuminen kannattaa toteuttaa ympäristömuuttujilla tai pilvipalvelun omalla tunnistautumismekanismilla. Älä kirjoita salasanoja tai pääsyavaimia Terraform-tiedostoihin.</div>
+        <h3>4.2 Resource – resurssin määrittely</h3><p><code>resource</code> on Terraformin keskeisin lohkotyyppi. Sen avulla luodaan ja hallitaan infrastruktuurin resursseja.</p><pre><code>resource "aws_instance" "web" {
+  ami           = "ami-0123456789abcdef0"
+  instance_type = "t3.micro"
+
+  tags = {
+    Name        = "web-server"
+    Environment = "development"
+  }
+}</code></pre>
+        <p>Resurssin yleinen syntaksi on <code>resource "PROVIDER_RESOURCE_TYPE" "LOCAL_NAME"</code>. Resurssiin viitataan esimerkiksi muodossa <code>aws_instance.web</code> ja sen ominaisuuteen muodossa <code>aws_instance.web.instance_type</code>.</p>
+        <h3>4.3 Variable – muuttujat</h3><p>Muuttujilla tehdään määrityksistä uudelleenkäytettäviä.</p><pre><code>variable "instance_type" {
+  description = "EC2 instance type"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+  default     = "development"
+}
+
+variable "instance_count" {
+  description = "Number of instances"
+  type        = number
+  default     = 1
+}</code></pre>
+        <p>Muuttujaa käytetään <code>var.</code>-etuliitteellä:</p><pre><code>resource "aws_instance" "web" {
+  ami           = "ami-0123456789abcdef0"
+  instance_type = var.instance_type
+
+  tags = {
+    Environment = var.environment
+  }
+}</code></pre>
+        <p>Arvoja voidaan antaa oletusarvolla, komentoriviltä, muuttujatiedostosta tai ympäristömuuttujasta.</p><pre><code># Komentoriviltä
+terraform apply -var="environment=production"
+
+# terraform.tfvars
+# environment    = "production"
+# instance_type  = "t3.small"
+# instance_count = 2
+
+# Ympäristömuuttujasta
+export TF_VAR_environment="production"</code></pre>
+        <p>Terraform lataa automaattisesti nykyisen hakemiston <code>terraform.tfvars</code>-tiedoston. Ympäristömuuttujat tunnistetaan <code>TF_VAR_</code>-etuliitteestä.</p>
+        <h3>4.4 Locals – paikalliset arvot</h3><p><code>locals</code>-lohkoa käytetään laskettujen tai useissa paikoissa tarvittavien arvojen määrittelyyn.</p><pre><code>locals {
+  project_name = "my-application"
+  environment  = "development"
+
+  common_tags = {
+    Project     = local.project_name
+    Environment = local.environment
+    ManagedBy   = "Terraform"
+  }
+}
+
+resource "aws_instance" "web" {
+  ami           = "ami-0123456789abcdef0"
+  instance_type = "t3.micro"
+  tags          = local.common_tags
+}</code></pre>
+        <table><thead><tr><th>Variable</th><th>Locals</th></tr></thead><tbody><tr><td>Ulkopuolelta annettava arvo.</td><td>Terraformin sisäinen arvo.</td></tr><tr><td>Käytetään <code>var.</code>-etuliitettä.</td><td>Käytetään <code>local.</code>-etuliitettä.</td></tr><tr><td>Voidaan antaa komentoriviltä.</td><td>Määritellään konfiguraatiossa.</td></tr><tr><td>Sopii parametrien määrittelyyn.</td><td>Sopii laskettuihin ja yhteisiin arvoihin.</td></tr></tbody></table>
+        <h3>4.5 Output – tulosteet</h3><p><code>output</code>-lohkon avulla näytetään Terraformin hallinnoimien resurssien tietoja.</p><pre><code>output "instance_id" {
+  description = "EC2 instance ID"
+  value       = aws_instance.web.id
+}
+
+output "instance_public_ip" {
+  description = "Public IP address"
+  value       = aws_instance.web.public_ip
+}</code></pre>
+        <p>Tulosteita voi tarkastella komennoilla <code>terraform output</code>, <code>terraform output instance_id</code> ja <code>terraform output -json</code>.</p>
+        <h3>4.6 Data source – olemassa olevan resurssin lukeminen</h3><p><code>data</code>-lohko hakee tietoja olemassa olevasta resurssista luomatta kyseistä resurssia.</p><pre><code>data "aws_ami" "amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["al2023-ami-*-x86_64"]
+  }
+}
+
+resource "aws_instance" "web" {
+  ami           = data.aws_ami.amazon_linux.id
+  instance_type = "t3.micro"
+}</code></pre>
+        <p><code>resource</code> luo tai hallitsee resurssia, kun taas <code>data</code> hakee tietoa jo olemassa olevasta resurssista.</p>
+        <h3>4.7 Terraform-lohko</h3><p><code>terraform</code>-lohko sisältää Terraformin toimintaan ja riippuvuuksiin liittyviä asetuksia.</p><pre><code>terraform {
+  required_version = "&gt;= 1.10.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~&gt; 6.0"
+    }
+  }
+}</code></pre>
+        <h3>4.8 Provisioner – komentojen suorittaminen</h3><p>Provisioner mahdollistaa komentojen suorittamisen resurssin luonnin tai poistamisen yhteydessä.</p><pre><code>resource "aws_instance" "web" {
+  ami           = "ami-0123456789abcdef0"
+  instance_type = "t3.micro"
+
+  provisioner "local-exec" {
+    command = "echo Instance created"
+  }
+}</code></pre>
+        <p>Provisionereita ovat <code>local-exec</code> (komento Terraformia ajavassa ympäristössä), <code>remote-exec</code> (komento etäkoneessa) ja <code>file</code> (tiedostojen kopiointi etäkoneeseen).</p>
+        <div class="note"><strong>Suositus</strong>Provisionereiden käyttöä kannattaa yleensä välttää, jos sama asia voidaan toteuttaa pilvipalvelun omilla mekanismeilla, cloud-initillä tai konfiguraationhallintatyökaluilla.</div>
+      </section>
+
+      <section id="ehdot"><h2>5. Ehtolauseet ja silmukat</h2>
+        <h3>5.1 Conditional expression – ehtolause</h3><p>Ehtolauseen syntaksi on <code>condition ? true_value : false_value</code>.</p><pre><code>variable "environment" {
+  type    = string
+  default = "development"
+}
+
+locals {
+  instance_type = var.environment == "production" ? "t3.medium" : "t3.micro"
+}</code></pre>
+        <p>Jos ympäristö on production, käytetään suurempaa instanssia. Muussa tapauksessa käytetään pienempää.</p>
+        <pre><code>locals {
+  is_production  = var.environment == "production"
+  is_development = var.environment == "development"
+  enable_monitoring = local.is_production || local.is_development
+}</code></pre>
+        <table><thead><tr><th>Operaattori</th><th>Merkitys</th></tr></thead><tbody><tr><td><code>==</code></td><td>Yhtäsuuruus</td></tr><tr><td><code>!=</code></td><td>Erisuuruus</td></tr><tr><td><code>&gt;</code>, <code>&lt;</code></td><td>Suurempi / pienempi kuin</td></tr><tr><td><code>&gt;=</code>, <code>&lt;=</code></td><td>Suurempi tai yhtä suuri / pienempi tai yhtä suuri</td></tr><tr><td><code>&amp;&amp;</code></td><td>Looginen AND</td></tr><tr><td><code>||</code></td><td>Looginen OR</td></tr><tr><td><code>!</code></td><td>Looginen NOT</td></tr></tbody></table>
+        <h3>5.2 count – resurssien määrän määrittely</h3><p><code>count</code> mahdollistaa useamman samanlaisen resurssin luomisen.</p><pre><code>variable "instance_count" {
+  type    = number
+  default = 2
+}
+
+resource "aws_instance" "web" {
+  count         = var.instance_count
+  ami           = "ami-0123456789abcdef0"
+  instance_type = "t3.micro"
+
+  tags = {
+    Name = "web-${count.index}"
+  }
+}</code></pre>
+        <p>Jos <code>instance_count</code> on 2, Terraform luo kaksi instanssia. Viittaukset tehdään indeksillä, esimerkiksi <code>aws_instance.web[0].id</code>. <code>count.index</code> alkaa nollasta.</p>
+        <h3>5.3 for_each – resurssien luominen kokoelman perusteella</h3><pre><code>variable "servers" {
+  type = map(string)
+  default = {
+    web = "t3.micro"
+    api = "t3.small"
+    db  = "t3.medium"
+  }
+}
+
+resource "aws_instance" "server" {
+  for_each      = var.servers
+  ami           = "ami-0123456789abcdef0"
+  instance_type = each.value
+
+  tags = {
+    Name = each.key
+  }
+}</code></pre>
+        <p><code>each.key</code> tarkoittaa avainta ja <code>each.value</code> sen arvoa. Resursseihin viitataan esimerkiksi muodossa <code>aws_instance.server["web"].id</code>.</p>
+        <table><thead><tr><th>count</th><th>for_each</th></tr></thead><tbody><tr><td>Sopii lukumäärään perustuvaan luontiin.</td><td>Sopii nimettyihin resursseihin.</td></tr><tr><td>Käyttää numeerisia indeksejä.</td><td>Käyttää avaimia.</td></tr><tr><td>Järjestys vaikuttaa tunnisteisiin.</td><td>Avaimet säilyttävät resurssien identiteetin.</td></tr><tr><td>Hyvä samanlaisten resurssien ryhmille.</td><td>Hyvä erilaisten resurssien ryhmille.</td></tr></tbody></table>
+        <p><code>for_each</code> on usein parempi vaihtoehto, jos resursseilla on omat nimet ja ominaisuudet.</p>
+        <h3>5.4 for – kokoelman käsittely</h3><pre><code>variable "names" {
+  default = ["web", "api", "database"]
+}
+
+locals {
+  upper_names = [
+    for name in var.names : upper(name)
+  ]
+}</code></pre>
+        <p>Tuloksena on lista <code>["WEB", "API", "DATABASE"]</code>. Map-rakenne voidaan muodostaa esimerkiksi näin:</p><pre><code>locals {
+  server_map = {
+    for name in var.names : name =&gt; "server-${name}"
+  }
+}</code></pre>
+        <h3>5.5 Dynamic blocks – dynaamiset lohkot</h3><p><code>dynamic</code> mahdollistaa sisäkkäisten lohkojen luomisen kokoelman perusteella.</p><pre><code>variable "allowed_ports" {
+  default = [80, 443]
+}
+
+resource "aws_security_group" "web" {
+  name = "web-security-group"
+
+  dynamic "ingress" {
+    for_each = var.allowed_ports
+    content {
+      from_port   = ingress.value
+      to_port     = ingress.value
+      protocol    = "tcp"
+      cidr_blocks = ["192.0.2.0/24"]
+    }
+  }
+}</code></pre>
+        <p>Esimerkissä muodostetaan kaksi ingress-sääntöä. Dynaamiset lohkot ovat hyödyllisiä, kun resurssin sisällä tarvitaan vaihteleva määrä sisäkkäisiä lohkoja.</p>
+      </section>
+
+      <section id="riippuvuudet"><h2>6. Resurssien riippuvuudet</h2><p>Terraform muodostaa automaattisesti riippuvuusgraafin. Jos resurssi käyttää toisen resurssin arvoa, Terraform ymmärtää niiden välisen riippuvuuden.</p><pre><code>resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "web" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.1.0/24"
+}</code></pre>
+        <p>Terraform tietää, että subnet voidaan luoda vasta VPC:n luonnin jälkeen.</p>
+        <h3>depends_on</h3><p>Jos riippuvuutta ei voi ilmaista suoraan resurssiviittauksella, voidaan käyttää <code>depends_on</code>-määritystä.</p><pre><code>resource "aws_instance" "web" {
+  ami           = "ami-0123456789abcdef0"
+  instance_type = "t3.micro"
+
+  depends_on = [aws_vpc.main]
+}</code></pre>
+        <p><code>depends_on</code> kannattaa jättää käyttämättä silloin, kun riippuvuus voidaan ilmaista selkeämmin suoran resurssiviittauksen avulla.</p>
+      </section>
+
+      <section id="lifecycle"><h2>7. Lifecycle – resurssin elinkaaren hallinta</h2><p><code>lifecycle</code>-lohko sisältää asetuksia, joilla voidaan vaikuttaa resurssien luontiin, päivittämiseen ja poistamiseen.</p>
+        <h3>create_before_destroy</h3><p>Luo uuden resurssin ennen vanhan poistamista.</p><pre><code>lifecycle {
+  create_before_destroy = true
+}</code></pre>
+        <h3>prevent_destroy</h3><p>Estää resurssin poistamisen Terraformin kautta, kun asetus on mukana konfiguraatiossa.</p><pre><code>lifecycle {
+  prevent_destroy = true
+}</code></pre>
+        <h3>ignore_changes</h3><p>Määrittelee ominaisuudet, joiden muutoksia Terraform ei huomioi suunnitelmaa tehdessään.</p><pre><code>lifecycle {
+  ignore_changes = [tags]
+}</code></pre>
+        <div class="warning"><strong>Muista</strong><code>prevent_destroy</code> ei ole varmuuskopio eikä suojaa resurssia kaikilta poistotavoilta. <code>ignore_changes</code> voi puolestaan peittää konfiguraation ja todellisen tilan välisiä eroja, joten käytä sitä harkiten.</div>
+      </section>
+
+      <section id="moduulit"><h2>8. Moduulit – Terraform-koodin uudelleenkäyttö</h2><p>Moduuli on kokoelma Terraform-tiedostoja, joilla toteutetaan tietty kokonaisuus. Esimerkiksi verkkoinfrastruktuuri voidaan toteuttaa omana moduulina.</p><pre><code>terraform-project/
+├── main.tf
+├── variables.tf
+├── outputs.tf
+└── modules/
+    └── network/
+        ├── main.tf
+        ├── variables.tf
+        └── outputs.tf</code></pre>
+        <h3>Moduulin sisältö</h3><p><strong>modules/network/main.tf</strong></p><pre><code>resource "aws_vpc" "main" {
+  cidr_block = var.vpc_cidr
+  tags = {
+    Name = var.vpc_name
+  }
+}</code></pre>
+        <p><strong>modules/network/variables.tf</strong></p><pre><code>variable "vpc_cidr" {
+  type = string
+}
+
+variable "vpc_name" {
+  type = string
+}</code></pre>
+        <p><strong>modules/network/outputs.tf</strong></p><pre><code>output "vpc_id" {
+  value = aws_vpc.main.id
+}</code></pre>
+        <h3>Moduulin käyttäminen</h3><p>Juuritason <code>main.tf</code>:</p><pre><code>module "network" {
+  source   = "./modules/network"
+  vpc_cidr = "10.0.0.0/16"
+  vpc_name = "development-vpc"
+}</code></pre>
+        <p>Moduulin output-arvoon päästään käsiksi muodossa <code>module.network.vpc_id</code>.</p>
+        <ul><li>Koodi voidaan käyttää uudelleen.</li><li>Projektin rakenne selkeytyy.</li><li>Infrastruktuuri voidaan jakaa loogisiin osiin.</li><li>Toteutukset pysyvät yhtenäisempinä eri ympäristöissä.</li></ul>
+      </section>
+
+      <section id="state"><h2>9. Terraform State – infrastruktuurin tilanhallinta</h2><p>Terraform ylläpitää state-tiedostoa, jossa kuvataan Terraformin hallinnoimien resurssien tila ja yhteydet todellisiin infrastruktuuriresursseihin.</p><p>Oletusarvoisesti state tallennetaan paikalliseen tiedostoon <code>terraform.tfstate</code>. Se on tärkeä osa Terraformin toimintaa: sen avulla Terraform yhdistää konfiguraation resurssit jo hallinnassa oleviin resursseihin.</p>
+        <h3>State-komennot</h3><pre><code># Näytä hallinnoidut resurssit
+terraform state list
+
+# Näytä yksittäisen resurssin tiedot
+terraform state show aws_instance.web
+
+# Siirrä resurssin osoite state-tiedostossa
+terraform state mv aws_instance.web aws_instance.application
+
+# Poista resurssin hallintatieto statesta
+terraform state rm aws_instance.web</code></pre>
+        <div class="warning"><strong>Huomaa</strong><code>terraform state rm</code> ei poista varsinaista pilviresurssia. Se poistaa vain Terraformin hallintatiedon.</div>
+        <h3>Remote state – etätilanhallinta</h3><p>Tiimityöskentelyssä state-tiedosto kannattaa yleensä tallentaa keskitettyyn backend-palveluun, esimerkiksi AWS S3:een tai Azure Storageen.</p><pre><code>terraform {
+  backend "s3" {
+    bucket       = "my-terraform-state"
+    key          = "development/terraform.tfstate"
+    region       = "eu-north-1"
+    use_lockfile = true
+  }
+}</code></pre>
+        <p>S3-bucketin on oltava olemassa ennen backendin käyttöönottoa. Remote staten etuja ovat yhteinen tila, keskitetty hallinta ja mahdollisuus lukita tila samanaikaisten muutosten ajaksi.</p>
+        <div class="warning"><strong>Tietoturva</strong>State-tiedosto voi sisältää salasanoja, tunnisteita ja muita arkaluonteisia arvoja. Suojaa sen tallennuspaikka ja käyttöoikeudet huolellisesti.</div>
+      </section>
+
+      <section id="komennot"><h2>10. Terraformin tärkeimmät komentorivikomennot</h2><p>Terraformia käytetään komentoriviltä. Seuraavat komennot kuuluvat tavalliseen kehitystyöhön.</p>
+        <table><thead><tr><th>Komento</th><th>Selitys</th></tr></thead><tbody><tr><td><code>terraform version</code></td><td>Näyttää Terraform-version.</td></tr><tr><td><code>terraform init</code></td><td>Alustaa projektin ja lataa providerit.</td></tr><tr><td><code>terraform fmt</code></td><td>Muotoilee Terraform-tiedostot.</td></tr><tr><td><code>terraform validate</code></td><td>Tarkistaa konfiguraation rakenteellisen oikeellisuuden.</td></tr><tr><td><code>terraform plan</code></td><td>Näyttää suunnitellut muutokset.</td></tr><tr><td><code>terraform apply</code></td><td>Toteuttaa muutokset.</td></tr><tr><td><code>terraform destroy</code></td><td>Poistaa hallinnoidut resurssit.</td></tr><tr><td><code>terraform output</code></td><td>Näyttää output-arvot.</td></tr><tr><td><code>terraform show</code></td><td>Näyttää nykyisen tilan tai suunnitelman.</td></tr><tr><td><code>terraform state list</code></td><td>Listaa state-tiedoston resurssit.</td></tr><tr><td><code>terraform providers</code></td><td>Näyttää provider-riippuvuudet.</td></tr><tr><td><code>terraform graph</code></td><td>Tuottaa resurssien riippuvuusgraafin.</td></tr></tbody></table>
+        <h3>10.1 terraform init</h3><pre><code>terraform init</code></pre><p>Alustaa projektin, lataa tarvittavat providerit ja moduulit, alustaa backendin sekä luo tai päivittää providerien lukitustiedoston.</p><pre><code># Alusta backend uudelleen asetuksia muuttamatta
+terraform init -reconfigure
+
+# Päivitä providerit sallittujen versiorajojen sisällä
+terraform init -upgrade</code></pre>
+        <h3>10.2 terraform fmt</h3><pre><code># Muotoile nykyisen hakemiston tiedostot
+terraform fmt
+
+# Sisällytä alihakemistot
+terraform fmt -recursive</code></pre>
+        <h3>10.3 terraform validate</h3><pre><code>terraform validate</code></pre><p>Tarkistaa syntaksin ja konfiguraation sisäisen rakenteen. Se ei varmista, että resurssin asetukset toimivat oikeassa pilviympäristössä, eikä toteuta muutoksia.</p>
+        <h3>10.4 terraform plan</h3><pre><code># Näytä suunnitellut muutokset
+terraform plan
+
+# Tallenna suunnitelma tiedostoon
+terraform plan -out=tfplan
+
+# Tarkastele tallennettua suunnitelmaa
+terraform show tfplan</code></pre>
+        <p>Tallennetun suunnitelman voi toteuttaa komennolla <code>terraform apply tfplan</code>. Plan on tärkeä, koska sen avulla muutokset voidaan tarkastaa ennen infrastruktuurin muokkaamista.</p>
+        <h3>10.5 terraform apply</h3><pre><code># Näytä suunnitelma ja pyydä hyväksyntä
+terraform apply
+
+# Hyväksy automaattisesti
+terraform apply -auto-approve</code></pre><p>Automaattista hyväksyntää kannattaa käyttää vain, kun hyväksyntäprosessi on muuten toteutettu luotettavasti, esimerkiksi CI/CD-putkessa.</p>
+        <h3>10.6 terraform destroy</h3><pre><code># Näytä poistettavat resurssit ja pyydä hyväksyntä
+terraform destroy
+
+# Hyväksy poistaminen automaattisesti
+terraform destroy -auto-approve</code></pre><p>Destroy-komentoa tulee käyttää erityisen harkiten.</p>
+        <h3>10.7 terraform output</h3><pre><code>terraform output
+terraform output instance_public_ip
+terraform output -json</code></pre>
+        <h3>10.8 terraform console</h3><p>Console mahdollistaa HCL-ilmaisujen testaamisen komentoriviltä.</p><pre><code>terraform console
+
+&gt; upper("terraform")
+"TERRAFORM"
+
+&gt; length(["web", "api", "db"])
+3
+
+&gt; 10 &gt; 5
+true
+
+&gt; exit</code></pre>
+        <h3>10.9 terraform import</h3><p>Import mahdollistaa olemassa olevan resurssin ottamisen Terraformin hallintaan.</p><pre><code>terraform import aws_instance.web i-0123456789abcdef0</code></pre><p>Import ei yleensä kirjoita resurssin Terraform-konfiguraatiota automaattisesti. Resurssille täytyy laatia vastaava <code>resource</code>-määritys.</p><p>Uudemmassa Terraformissa voidaan käyttää myös deklaratiivista import-lohkoa:</p><pre><code>import {
+  to = aws_instance.web
+  id = "i-0123456789abcdef0"
+}</code></pre><p>Tämän jälkeen käytetään normaalia plan- ja apply-työnkulkua.</p>
+      </section>
+
+      <section id="tyonkulku"><h2>11. Terraformin komentojen käytännön työnkulku</h2><p>Tavallinen Terraform-kehitystyö noudattaa seuraavaa järjestystä:</p>
+        <ol><li><strong>Luo projektihakemisto.</strong><pre><code>mkdir terraform-project
+cd terraform-project</code></pre></li><li><strong>Kirjoita Terraform-määritykset.</strong> Luo esimerkiksi <code>main.tf</code>, <code>variables.tf</code> ja <code>outputs.tf</code>.</li><li><strong>Alusta projekti.</strong><pre><code>terraform init</code></pre></li><li><strong>Muotoile ja tarkista.</strong><pre><code>terraform fmt -recursive
+terraform validate</code></pre></li><li><strong>Tarkasta suunnitelma.</strong><pre><code>terraform plan</code></pre></li><li><strong>Toteuta muutokset.</strong><pre><code>terraform apply</code></pre></li><li><strong>Tarkastele lopputulosta.</strong><pre><code>terraform output
+terraform state list</code></pre></li><li><strong>Poista harjoitusympäristö tarvittaessa.</strong><pre><code>terraform destroy</code></pre></li></ol>
+        <p>Tämä työnkulku on hyvä perusta myös automatisoiduille CI/CD-prosesseille.</p>
+      </section>
+
+      <section id="workspaces"><h2>12. Ympäristöt ja Workspaces</h2><p>Terraform Workspaces mahdollistaa useamman erillisen state-tilan käyttämisen saman konfiguraation yhteydessä. Esimerkiksi kehitys- ja tuotantoympäristöille voidaan käyttää eri työtiloja.</p><pre><code># Listaa työtilat
+terraform workspace list
+
+# Luo uusi työtila
+terraform workspace new development
+
+# Vaihda työtilaa
+terraform workspace select production
+
+# Näytä aktiivinen työtila
+terraform workspace show
+
+# Poista työtila
+terraform workspace delete development</code></pre>
+        <p>Työtilaa voidaan hyödyntää ympäristökohtaisten asetusten valintaan:</p><pre><code>locals {
+  instance_type = terraform.workspace == "production" ? "t3.medium" : "t3.micro"
+}
+
+resource "aws_instance" "web" {
+  ami           = "ami-0123456789abcdef0"
+  instance_type = local.instance_type
+}</code></pre>
+        <div class="warning"><strong>Huomio</strong>Workspaces ei itsessään eristä pilviympäristöjä tai käyttöoikeuksia. Suuremmissa järjestelmissä erilliset Terraform-projektit ja backendit voivat olla selkeämpi ja turvallisempi ratkaisu.</div>
+      </section>
+
+      <section id="debug"><h2>13. Virhetilanteet ja debuggaus</h2><p>Terraform tukee lokitusta ympäristömuuttujien avulla.</p><pre><code>export TF_LOG=DEBUG
+terraform plan</code></pre>
+        <table><thead><tr><th>Taso</th><th>Selitys</th></tr></thead><tbody><tr><td><code>TRACE</code></td><td>Erittäin yksityiskohtainen lokitus.</td></tr><tr><td><code>DEBUG</code></td><td>Debuggaustiedot.</td></tr><tr><td><code>INFO</code></td><td>Yleiset tapahtumat.</td></tr><tr><td><code>WARN</code></td><td>Varoitukset.</td></tr><tr><td><code>ERROR</code></td><td>Virheet.</td></tr></tbody></table>
+        <p>Lokit voi ohjata tiedostoon:</p><pre><code>export TF_LOG=DEBUG
+export TF_LOG_PATH=terraform.log
+terraform plan
+
+# Poista debug-asetukset
+unset TF_LOG
+unset TF_LOG_PATH</code></pre>
+        <div class="warning"><strong>Tietoturva</strong>Lokeihin voi päätyä arkaluonteista tietoa. Älä jaa niitä sellaisenaan julkisesti.</div>
+        <h3>Yleisiä ongelmatilanteita</h3><table><thead><tr><th>Virhetilanne</th><th>Mahdollinen ratkaisu</th></tr></thead><tbody><tr><td>Provider not found</td><td>Tarkista <code>required_providers</code> ja suorita <code>terraform init</code>.</td></tr><tr><td>Invalid configuration</td><td>Tarkista syntaksi ja suorita <code>terraform validate</code>.</td></tr><tr><td>Authentication failed</td><td>Tarkista pilvipalvelun tunnistautuminen.</td></tr><tr><td>Resource already exists</td><td>Tarkista resurssi ja tarvittaessa import.</td></tr><tr><td>State lock error</td><td>Selvitä, onko toinen Terraform-prosessi käynnissä.</td></tr><tr><td>Dependency cycle</td><td>Tarkista resurssien väliset riippuvuudet.</td></tr><tr><td>Inconsistent dependency lock file</td><td>Suorita <code>terraform init</code>.</td></tr></tbody></table>
+      </section>
+
+      <section id="git"><h2>14. Terraform ja Git-versionhallinta</h2><p>Terraform-projektit kannattaa tallentaa Git-repositorioon. Kaikkia Terraformin luomia tiedostoja ei kuitenkaan pidä lisätä versionhallintaan.</p><pre><code># .gitignore
+
+# Terraform working directory
+.terraform/
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Variable files containing sensitive values
+*.tfvars
+*.tfvars.json
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Saved plan files
+*.tfplan
+
+# Local CLI configuration
+.terraformrc
+terraform.rc</code></pre>
+        <ul><li><code>.terraform.lock.hcl</code> kuuluu yleensä versionhallintaan.</li><li><code>*.tfstate</code> ei kuulu Git-repositorioon.</li><li>Salaisuuksia sisältäviä muuttujatiedostoja ei pidä tallentaa julkiseen repositorioon.</li><li>Terraform-koodin tulee olla versionhallinnassa, jotta infrastruktuurin muutokset voidaan jäljittää.</li></ul>
+      </section>
+
+      <section id="cicd"><h2>15. Terraform CI/CD-putkessa</h2><p>Terraform soveltuu hyvin automatisoituun infrastruktuurin hallintaan esimerkiksi GitHub Actionsin avulla.</p>
+        <div class="flow"><div><b>Developer</b><span>Muuttaa Terraform-koodia</span></div><div><b>Pull Request</b><span>Koodin katselmointi</span></div><div><b>Terraform CI</b><span>fmt, validate, plan</span></div><div><b>Approval &amp; Apply</b><span>Hyväksyntä ja käyttöönotto</span></div></div>
+        <p>Esimerkki GitHub Actions -workflowsta:</p><pre><code>name: Terraform CI
+
+on:
+  pull_request:
+    paths:
+      - 'terraform/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      - name: Terraform Format
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -input=false</code></pre>
+        <p>Tämä on CI-esimerkki, joka tarkistaa konfiguraation ja muodostaa suunnitelman. Varsinainen tuotantokäyttöönotto kannattaa toteuttaa erillisellä hyväksytyllä Apply-vaiheella.</p>
+        <p>Tuotantokäytössä huomioi pilvipalvelun tunnistautuminen, remote state ja lukitus, provider-versioiden lukitseminen, Apply-vaiheen käyttöoikeudet sekä suunnitelman hyväksyntä.</p>
+      </section>
+
+      <section id="kaytannot"><h2>16. Hyviä käytäntöjä Terraform-kehityksessä</h2><table><thead><tr><th>Käytäntö</th><th>Perustelu</th></tr></thead><tbody><tr><td>Käytä muuttujia</td><td>Helpottaa uudelleenkäyttöä.</td></tr><tr><td>Käytä moduuleja</td><td>Vähentää koodin toistoa.</td></tr><tr><td>Käytä remote statea</td><td>Mahdollistaa turvallisemman yhteistyön.</td></tr><tr><td>Lukitse provider-versiot</td><td>Vähentää odottamattomia muutoksia.</td></tr><tr><td>Suorita plan ennen applya</td><td>Näet muutokset etukäteen.</td></tr><tr><td>Käytä Git-versionhallintaa</td><td>Muutokset ovat jäljitettävissä.</td></tr><tr><td>Älä tallenna salaisuuksia koodiin</td><td>Vähentää tietoturvariskejä.</td></tr><tr><td>Käytä lifecycle-asetuksia harkiten</td><td>Hallinnoi resurssien elinkaarta.</td></tr><tr><td>Dokumentoi moduulit</td><td>Helpottaa ylläpitoa.</td></tr></tbody></table>
+        <p>Hyödyllisiä lisätyökaluja:</p><ul><li><strong>TFLint:</strong> Terraform-koodin staattinen analyysi.</li><li><strong>Checkov:</strong> Infrastruktuurikoodin tietoturvatarkastukset.</li><li><strong>Trivy:</strong> Haavoittuvuuksien ja IaC-määritysten tarkastaminen.</li><li><strong>Terraform Registry:</strong> Providerien ja moduulien hakemisto.</li></ul>
+      </section>
+
+      <section id="harjoitukset"><h2>17. Käytännön harjoitustehtävät</h2><p class="lead">Harjoitukset etenevät perusteista hieman monimutkaisempiin kokonaisuuksiin. Merkitse tehtävä suoritetuksi, kun olet tehnyt sen.</p>
+        <div class="checklist"><strong>Harjoitusten eteneminen</strong><div class="progress"><span id="progressBar"></span></div><p id="progressText" aria-live="polite">0 / 5 suoritettu</p>
+          <h3>Harjoitus 1 – Ensimmäinen Terraform-projekti</h3><p>Luo projekti, jossa käytät Terraformin local-provideria ja luot paikallisen tiedoston.</p><label><input type="checkbox"> Määrittele provider.</label><label><input type="checkbox"> Luo local_file-resurssi.</label><label><input type="checkbox"> Käytä variable-lohkoa tiedoston sisällön määrittelyyn.</label><label><input type="checkbox"> Määrittele output, joka näyttää tiedoston nimen.</label><label><input type="checkbox"> Suorita init, validate, plan ja apply.</label>
+          <hr>
+          <h3>Harjoitus 2 – Muuttujat ja ehdot</h3><p>Tee konfiguraatio, jossa resurssin ominaisuudet riippuvat ympäristöstä.</p><label><input type="checkbox"> Määrittele development- ja production-ympäristöt.</label><label><input type="checkbox"> Käytä conditional expression -syntaksia.</label><label><input type="checkbox"> Määrittele locals-lohkossa ympäristökohtaiset asetukset.</label><label><input type="checkbox"> Testaa eri muuttuja-arvoilla.</label>
+          <hr>
+          <h3>Harjoitus 3 – Useita resursseja</h3><p>Luo useita resurssimäärityksiä for_each-rakenteen avulla.</p><label><input type="checkbox"> Määrittele palvelimien nimet map-rakenteessa.</label><label><input type="checkbox"> Luo resurssit for_each-rakenteella.</label><label><input type="checkbox"> Käytä each.key- ja each.value-arvoja.</label><label><input type="checkbox"> Tulosta kaikkien resurssien tunnisteet.</label>
+          <hr>
+          <h3>Harjoitus 4 – Terraform-moduuli</h3><p>Rakenna uudelleenkäytettävä moduuli verkkoinfrastruktuurin luomiseen.</p><label><input type="checkbox"> Luo network-moduuli.</label><label><input type="checkbox"> Määrittele CIDR-osoite muuttujana.</label><label><input type="checkbox"> Palauta luodun verkon tunniste output-arvona.</label><label><input type="checkbox"> Käytä moduulia juuritason main.tf-tiedostossa.</label>
+          <hr>
+          <h3>Harjoitus 5 – AWS-infrastruktuuri</h3><p>Rakenna yksinkertainen AWS-ympäristö.</p><label><input type="checkbox"> Määrittele AWS-provider.</label><label><input type="checkbox"> Luo VPC ja subnet.</label><label><input type="checkbox"> Luo EC2-instanssi subnetiin.</label><label><input type="checkbox"> Määrittele tarvittavat muuttujat ja outputit.</label><label><input type="checkbox"> Tarkasta suunnitelma ennen resurssien luontia.</label>
+        </div>
+        <div class="warning"><strong>Harjoitusympäristöt</strong>AWS-harjoitus voi aiheuttaa kustannuksia. Tarkista resurssien hinnoittelu ja poista harjoituksessa luodut resurssit, kun et enää tarvitse niitä.</div>
+      </section>
+
+      <section id="dokumentaatio"><h2>18. Hyödyllisiä dokumentaatioita</h2><p>Terraformin virallinen dokumentaatio kannattaa ottaa ensisijaiseksi lähteeksi.</p><ul class="resources"><li><a href="https://developer.hashicorp.com/terraform/docs" target="_blank" rel="noopener">Terraform Documentation</a> – yleinen dokumentaatio.</li><li><a href="https://developer.hashicorp.com/terraform/language" target="_blank" rel="noopener">Terraform Language</a> – HCL-syntaksi ja lohkotyypit.</li><li><a href="https://developer.hashicorp.com/terraform/cli" target="_blank" rel="noopener">Terraform CLI</a> – komentorivikomennot.</li><li><a href="https://registry.terraform.io/" target="_blank" rel="noopener">Terraform Registry</a> – providerit ja moduulit.</li><li><a href="https://developer.hashicorp.com/terraform/tutorials" target="_blank" rel="noopener">Terraform Tutorials</a> – käytännön harjoitukset.</li><li><a href="https://developer.hashicorp.com/terraform/language/state" target="_blank" rel="noopener">Terraform State</a> – tilanhallinta.</li></ul>
+      </section>
+
+      <section id="yhteenveto"><h2>19. Yhteenveto – tärkeimmät asiat muistettavaksi</h2><p>Terraformin käyttö perustuu muutamaan keskeiseen käsitteeseen:</p><table><thead><tr><th>Käsite</th><th>Merkitys</th></tr></thead><tbody><tr><td>HCL</td><td>Terraformin määrityskieli.</td></tr><tr><td>Provider</td><td>Yhteys ulkoiseen järjestelmään.</td></tr><tr><td>Resource</td><td>Hallittava infrastruktuuriresurssi.</td></tr><tr><td>Variable</td><td>Ulkopuolelta annettava muuttuja.</td></tr><tr><td>Locals</td><td>Paikalliset laskennalliset arvot.</td></tr><tr><td>Data</td><td>Olemassa olevan resurssin tietojen lukeminen.</td></tr><tr><td>Output</td><td>Arvojen palauttaminen.</td></tr><tr><td>Module</td><td>Uudelleenkäytettävä Terraform-kokonaisuus.</td></tr><tr><td>State</td><td>Resurssien tilan hallinta.</td></tr><tr><td>Backend</td><td>Staten tallennuspaikka.</td></tr><tr><td>Plan</td><td>Muutosten suunnittelu.</td></tr><tr><td>Apply</td><td>Muutosten toteuttaminen.</td></tr><tr><td>Destroy</td><td>Resurssien poistaminen.</td></tr></tbody></table>
+        <div class="tip"><strong>Tärkein muistettava toimintaperiaate</strong>Terraformissa määritellään haluttu infrastruktuurin tila, minkä jälkeen Terraform huolehtii tarvittavien muutosten suunnittelusta ja toteuttamisesta.</div>
+        <p>Opettelussa kannattaa edetä järjestyksessä HCL-syntaksista resursseihin, muuttujiin, riippuvuuksiin, moduuleihin ja lopulta state-hallintaan sekä CI/CD-automaatioon. Näin Terraformin toimintalogiikka tulee ymmärretyksi eikä työskentely jää pelkäksi komentojen ulkoa opetteluksi.</p>
+      </section>
+      <footer>Terraform-opetusmateriaali · Päivitetty 2026 · Esimerkit ovat opetuskäyttöön ja vaativat ympäristökohtaisen tarkistuksen ennen käyttöönottoa.</footer>
+    </main>
+  </div>
+  <script>
+    // Harjoitusten etenemisen seuranta selaimessa.
+    const checks = [...document.querySelectorAll('.checklist input[type="checkbox"]')];
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    function updateProgress() {
+      const groups = [...document.querySelectorAll('.checklist h3')];
+      let completed = 0;
+      groups.forEach((heading) => {
+        const sectionChecks = [];
+        let node = heading.nextElementSibling;
+        while (node && node.tagName !== 'HR' && node.tagName !== 'H3') {
+          if (node.matches('label') && node.querySelector('input')) sectionChecks.push(node.querySelector('input'));
+          node = node.nextElementSibling;
+        }
+        if (sectionChecks.length && sectionChecks.every(input => input.checked)) completed++;
+      });
+      progressBar.style.width = `${completed / 5 * 100}%`;
+      progressText.textContent = `${completed} / 5 harjoitusta suoritettu`;
+    }
+    checks.forEach(input => input.addEventListener('change', updateProgress));
+    updateProgress();
+  </script>
+</body>
+</html>
