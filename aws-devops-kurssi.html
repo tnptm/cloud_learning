@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AWS DevOps -pikakurssi (Terraform)</title>
+<style>
+:root {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --text: #1d2330;
+  --muted: #5b6474;
+  --accent: #e8891f;
+  --accent-2: #2f6fdb;
+  --border: #dde1e8;
+  --code-bg: #14171f;
+  --code-text: #e6edf7;
+  --tip: #fff6e8;
+  --warn: #fdecec;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1217;
+    --surface: #171b23;
+    --text: #e6e9ef;
+    --muted: #9aa3b2;
+    --accent: #f0a24a;
+    --accent-2: #6b9cf0;
+    --border: #2a303b;
+    --code-bg: #0a0c10;
+    --code-text: #dfe6f2;
+    --tip: #2a2216;
+    --warn: #2e1717;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1217;
+  --surface: #171b23;
+  --text: #e6e9ef;
+  --muted: #9aa3b2;
+  --accent: #f0a24a;
+  --accent-2: #6b9cf0;
+  --border: #2a303b;
+  --code-bg: #0a0c10;
+  --code-text: #dfe6f2;
+  --tip: #2a2216;
+  --warn: #2e1717;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+.layout { display: flex; min-height: 100vh; }
+nav.toc {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 24px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+nav.toc h2 { font-size: 1rem; margin: 0 0 12px; color: var(--accent); }
+nav.toc ol { padding-left: 18px; margin: 0; }
+nav.toc li { margin: 6px 0; font-size: 0.92rem; }
+nav.toc a { color: var(--text); text-decoration: none; }
+nav.toc a:hover { color: var(--accent-2); }
+main {
+  flex: 1;
+  max-width: 920px;
+  padding: 32px 40px 80px;
+  min-width: 0;
+}
+header.hero {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  border-radius: 14px;
+  padding: 32px;
+  margin-bottom: 32px;
+}
+header.hero h1 { margin: 0 0 8px; font-size: 2rem; }
+header.hero p { margin: 0; opacity: 0.95; }
+h2.module-title {
+  font-size: 1.6rem;
+  margin: 48px 0 8px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--accent);
+}
+h3 { font-size: 1.1rem; margin: 24px 0 8px; color: var(--accent-2); }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin: 16px 0;
+}
+.tip { background: var(--tip); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; margin: 16px 0; }
+.warn { background: var(--warn); border-left: 4px solid #d64545; border-radius: 8px; padding: 14px 18px; margin: 16px 0; }
+.services { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.services span {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 0.88rem;
+}
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.95rem; }
+th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: var(--surface); }
+code { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.9em; }
+p code, li code { background: var(--surface); border: 1px solid var(--border); padding: 1px 5px; border-radius: 4px; }
+pre {
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 16px 18px;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: none; padding: 0; }
+.purpose-list li { margin: 8px 0; }
+.label { font-weight: 600; color: var(--accent); }
+footer { margin-top: 64px; color: var(--muted); font-size: 0.9rem; }
+@media (max-width: 860px) {
+  .layout { flex-direction: column; }
+  nav.toc { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }
+  main { padding: 20px; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc">
+  <h2>Sisältö</h2>
+  <ol>
+    <li><a href="#johdanto">Johdanto ja pelisäännöt</a></li>
+    <li><a href="#terraform-perusta">Terraform-perusta</a></li>
+    <li><a href="#iam">IAM</a></li>
+    <li><a href="#vpc">VPC ja verkko</a></li>
+    <li><a href="#ecr">ECR</a></li>
+    <li><a href="#secrets">Secrets Manager</a></li>
+    <li><a href="#rds">RDS (PostgreSQL)</a></li>
+    <li><a href="#ecs">ECS Fargate (Docker)</a></li>
+    <li><a href="#alb">ALB</a></li>
+    <li><a href="#logs">CloudWatch</a></li>
+    <li><a href="#s3">S3</a></li>
+    <li><a href="#cloudfront">CloudFront</a></li>
+    <li><a href="#dns">Route 53 ja ACM</a></li>
+    <li><a href="#ec2">EC2 (VPS-vaihtoehto)</a></li>
+    <li><a href="#lambda">Lambda ja EventBridge</a></li>
+    <li><a href="#cicd">CI/CD: GitHub Actions + OIDC</a></li>
+    <li><a href="#harjoitus">Kokoava harjoitus</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<header class="hero">
+  <h1>AWS DevOps -pikakurssi</h1>
+  <p>Terraformilla rakennettava infrastruktuuri Python-, Django-/FastAPI-, Next.js-, PostgreSQL- ja Docker-sovelluksille.</p>
+</header>
+
+<!-- ============================================================ -->
+<section id="johdanto">
+<h2 class="module-title">1. Johdanto ja pelisäännöt</h2>
+
+<div class="card">
+<p>AWS on pilvipalveluiden lauta, jolla on satoja palveluita. DevOpsissa et tarvitse kaikkia. Tämä kurssi keskittyy palveluihin, joilla yleisin web-sovellus saadaan pystyyn: verkko, tietokanta, konttien ajo, kuormantasaus, tiedostot, DNS ja automaatio.</p>
+<p>Kolme käsitettä kannattaa hallita heti:</p>
+<ul class="purpose-list">
+  <li><span class="label">Region</span>: maantieteellinen alue, esim. <code>eu-north-1</code> (Tukholma), joka on Suomesta lähin. Palvelut ja resurssit ovat aina tietyssä regionissa.</li>
+  <li><span class="label">Availability Zone (AZ)</span>: regionin sisäinen erillinen datakeskus. Redundanssi rakennetaan levittämällä resursseja useaan AZ:hen.</li>
+  <li><span class="label">Account</span>: laskutus- ja oikeusrajan muodostava tili. Käytä erillistä tiliä kehitykselle ja tuotannolle.</li>
+</ul>
+</div>
+
+<h3>Kustannus- ja turvallisuusvaroitus</h3>
+<div class="warn">
+<p>Pilvi laskuttaa käytöstä, ei siitä, että palvelu on "pystyssä" tyhjäkäynnillä. Erityisen kalliita ovat NAT Gateway, Application Load Balancer ja RDS, jotka maksavat myös silloin, kun niitä ei käytetä.</p>
+<ul>
+  <li>Aseta laskutushälytys heti (AWS Budgets, esim. 10 €/kk).</li>
+  <li>Kokeile aina <code>terraform plan</code> ennen <code>apply</code>-komentoa.</li>
+  <li>Opettelun jälkeen aja <code>terraform destroy</code>, ettet jätä resursseja pyörimään.</li>
+  <li>Älä koskaan kirjoita avaimia koodiin tai tiedostoihin. Käytä IAM-rooleja ja Secrets Manageria.</li>
+</ul>
+</div>
+
+<h3>Kurssin palvelukartta</h3>
+<div class="card">
+<p>Tyypillinen web-sovellus näyttää tältä:</p>
+<pre><code>Käyttäjä → Route 53 (DNS) → ACM (TLS) → ALB (kuormantasaus)
+                                            ↓
+                              ECS Fargate (Docker-kontit: Django / FastAPI / Next.js)
+                                            ↓                    ↓
+                                 RDS PostgreSQL          Secrets Manager
+                                            
+Staattiset tiedostot: S3 → CloudFront → käyttäjä
+Lokit ja mittarit: CloudWatch
+Koodi ja kuvat: GitHub → GitHub Actions (OIDC) → ECR → ECS</code></pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="terraform-perusta">
+<h2 class="module-title">2. Terraform-perusta</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Terraform on infrastructure as code (IaC) -työkalu. Kuvaat infrastruktuurin HCL-kielisinä tiedostoina, ja Terraform vertaa kuvausta todelliseen tilaan (state) ja tekee tarvittavat muutokset.</p>
+<p><span class="label">Liittyy muihin:</span> AWS Provider, S3 (state-tiedosto), DynamoDB (lukitus), CI/CD-putket.</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li>Infrastruktuuri on toistettava: sama koodi tuottaa saman ympäristön kehitykseen, testiin ja tuotantoon.</li>
+  <li>Muutokset näkyvät versionhallinnassa ja niistä voi tehdä katselmoinnin pull requestilla.</li>
+  <li>Konsoliklikkailu ei skaalaudu eikä jää dokumentoiduksi. Koodi on dokumentaatio.</li>
+  <li><code>plan</code>-vaihe näyttää etukäteen, mitä muuttuu, ja vähentää yllätyksiä.</li>
+</ul>
+
+<h3>Perusrakenne ja tilan tallennus</h3>
+<pre><code class="language-hcl">terraform {
+  required_version = "&gt;= 1.6"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~&gt; 5.0"
+    }
+  }
+  # Tila tallennetaan S3:een, jotta se ei ole vain yhden koneen varassa
+  backend "s3" {
+    bucket         = "toni-tfstate"
+    key            = "devops-demo/terraform.tfstate"
+    region         = "eu-north-1"
+    dynamodb_table = "tf-locks"   # estää kaksi samanaikaista apply-ajoa
+    encrypt        = true
+  }
+}
+
+provider "aws" {
+  region = "eu-north-1"
+  # Tagit kaikille resursseille automaattisesti (kustannusseuranta!)
+  default_tags {
+    tags = {
+      Project   = "devops-demo"
+      ManagedBy = "terraform"
+    }
+  }
+}</code></pre>
+
+<div class="tip">
+<p><strong>Vinkki:</strong> Tila (<code>terraform.tfstate</code>) voi sisältää arkaluontoista dataa. Älä koskaan committaa sitä Gitiin. Käytä S3-backendia ja salaa se.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="iam">
+<h2 class="module-title">3. IAM (Identity and Access Management)</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> IAM hallitsee, kuka tai mikä saa tehdä mitä AWS:ssä. Peruskäsitteet ovat käyttäjät (users), ryhmät, roolit (roles) ja politiikat (policies). Politiikka on JSON-dokumentti, joka sallii tai kieltää toimintoja.</p>
+<p><span class="label">Liittyy muihin:</span> kaikki palvelut. ECS tarvitsee roolin kuvien hakuun, Lambda roolin lokeihin, GitHub Actions roolin deployyn varten.</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Vähimmän oikeuden periaate:</span> jokainen palvelu saa vain ne oikeudet, joita se tarvitsee. Jos sovellus vuotaa, vahinko rajoittuu.</li>
+  <li><span class="label">Roolit palveluille:</span> ECS-tehtävä ei tarvitse käyttäjätunnusta. Se ottaa roolin ja saa väliaikaiset tunnukset.</li>
+  <li><span class="label">Ei pitkäaikaisia avaimia:</span> roolit ja OIDC poistavat tarpeen tallentaa AWS-avaimia CI-palveluun.</li>
+</ul>
+
+<h3>Esimerkki: palveluroolin luominen</h3>
+<pre><code class="language-hcl">data "aws_iam_policy_document" "ecs_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "ecs_execution" {
+  name               = "demo-ecs-execution"
+  assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
+}
+
+# AWS:n valmis politiikka: kuvien veto ECR:stä ja lokien kirjoitus
+resource "aws_iam_role_policy_attachment" "ecs_execution" {
+  role       = aws_iam_role.ecs_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}</code></pre>
+
+<div class="warn">
+<p>Vältä <code>"Action": "*"</code> ja <code>"Resource": "*"</code> -yhdistelmää. Se on käytännössä admin-oikeus, ja se on yleisin syy vuotoihin.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="vpc">
+<h2 class="module-title">4. VPC ja verkko</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> VPC (Virtual Private Cloud) on oma eristetty verkkosi AWS:ssä. Sen sisällä on aliverkkoja (subnet), reititystauluja, Internet Gateway (IGW) ja NAT Gateway. Security Group toimii palomuurina resurssin tasolla.</p>
+<p><span class="label">Liittyy muihin:</span> lähes kaikki: RDS, ECS, ALB, EC2, Lambda (VPC-kytkettynä).</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Julkinen ja yksityinen eristys:</span> ALB on julkisessa aliverkossa, tietokanta ja sovelluskontit yksityisessä. Tietokantaa ei voi tavoittaa internetistä edes vahingossa.</li>
+  <li><span class="label">Usean AZ:n redundanssi:</span> kaksi aliverkkoa eri AZ:issa, jotta yksi datakeskuksen vika ei kaada palvelua.</li>
+  <li><span class="label">Security Groupit:</span> sallitaan vain tarvittava liikenne, esim. ALB → sovellus porttiin 8000, sovellus → tietokanta porttiin 5432.</li>
+</ul>
+
+<h3>Esimerkki: VPC, aliverkot ja reititys</h3>
+<pre><code class="language-hcl">resource "aws_vpc" "main" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+  tags                 = { Name = "demo-vpc" }
+}
+
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
+resource "aws_subnet" "public" {
+  count                   = 2
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = cidrsubnet(aws_vpc.main.cidr_block, 8, count.index)
+  availability_zone       = data.aws_availability_zones.available.names[count.index]
+  map_public_ip_on_launch = true
+  tags                    = { Name = "public-${count.index}" }
+}
+
+resource "aws_subnet" "private" {
+  count             = 2
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = cidrsubnet(aws_vpc.main.cidr_block, 8, count.index + 10)
+  availability_zone = data.aws_availability_zones.available.names[count.index]
+  tags              = { Name = "private-${count.index}" }
+}
+
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main.id
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+}
+
+resource "aws_route_table_association" "public" {
+  count          = 2
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public.id
+}
+
+# Security group ALB:lle: sallii HTTP ja HTTPS internetistä
+resource "aws_security_group" "alb" {
+  name   = "demo-alb"
+  vpc_id = aws_vpc.main.id
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Sovellus hyväksyy liikennettä vain ALB:ltä
+resource "aws_security_group" "app" {
+  name   = "demo-app"
+  vpc_id = aws_vpc.main.id
+  ingress {
+    from_port       = 8000
+    to_port         = 8000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}</code></pre>
+
+<div class="tip">
+<p><strong>Kustannusvinkki:</strong> Yksityisistä aliverkoista pääsy internetiin (esim. kuvien veto ulkopuolelta) vaatii NAT Gatewayn, joka maksaa kiinteän hinnan kuukaudessa. Kurssiesimerkissä sovellus ajetaan julkisessa aliverkossa, mutta tietokanta pysyy yksityisessä. Tuotannossa NAT on yleensä perusteltu.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="ecr">
+<h2 class="module-title">5. ECR (Elastic Container Registry)</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> AWS:n yksityinen Docker-rekisteri. Tallennat siihen sovelluksesi kontti-imagen, ja ECS, Lambda tai EKS hakevat imagen sieltä.</p>
+<p><span class="label">Liittyy muihin:</span> ECS, Lambda, EKS, CodeBuild, GitHub Actions, IAM.</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Imagen versiointi:</span> jokainen build saa tagin (esim. git-commit-hash), jolloin tiedät tarkalleen mikä koodi on tuotannossa.</li>
+  <li><span class="label">Turvallisuus:</span> automaattinen haavoittuvuusskannaus (<code>scan_on_push</code>) kertoo riippuvuuksien ongelmista.</li>
+  <li><span class="label">Lähellä kuormaa:</span> saman alueen sisällä imagen veto on nopeaa eikä vie internet-kaistaa.</li>
+</ul>
+
+<h3>Esimerkki</h3>
+<pre><code class="language-hcl">resource "aws_ecr_repository" "app" {
+  name                 = "devops-demo"
+  image_tag_mutability = "IMMUTABLE"   # sama tagi ei voi ylikirjoittua
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+# Elinkaarisääntö: pidetään vain 10 viimeisintä imagea, jotta tila ei kasva
+resource "aws_ecr_lifecycle_policy" "app" {
+  repository = aws_ecr_repository.app.name
+  policy = jsonencode({
+    rules = [{
+      rulePriority = 1
+      description  = "Pidä 10 viimeisintä"
+      selection = {
+        tagStatus   = "any"
+        countType   = "imageCountMoreThan"
+        countNumber = 10
+      }
+      action = { type = "expire" }
+    }]
+  })
+}</code></pre>
+
+<div class="tip">
+<p>Docker-kuvan rakentaminen ja työntäminen: <code>aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin &lt;tili&gt;.dkr.ecr.eu-north-1.amazonaws.com</code>, sitten <code>docker build -t devops-demo .</code> ja <code>docker push</code>.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="secrets">
+<h2 class="module-title">6. Secrets Manager ja SSM Parameter Store</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Secrets Manager tallentaa salaisuuksia (salasanat, API-avaimet) salattuna ja kierrättää niitä automaattisesti. SSM Parameter Store on kevyempi vaihtoehto, joka sopii myös ei-salaisille asetuksille.</p>
+<p><span class="label">Liittyy muihin:</span> RDS (automaattinen salasanan hallinta), ECS (secrets-kenttä), Lambda, KMS (salausavaimet).</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Ei salaisuuksia koodissa tai ympäristömuuttujissa:</span> sovellus hakee arvon ajon aikana tai ECS hakee sen käynnistyksessä.</li>
+  <li><span class="label">Kierrätys:</span> salasanan vaihto ilman sovelluksen uudelleenjulkaisua.</li>
+  <li><span class="label">Audit:</span> CloudTrail kirjaa, kuka on lukenut salaisuuden.</li>
+</ul>
+
+<h3>Esimerkki: parametri ja salaisuus</h3>
+<pre><code class="language-hcl">resource "aws_ssm_parameter" "debug" {
+  name  = "/devops-demo/DJANGO_DEBUG"
+  type  = "String"
+  value = "0"
+}
+
+resource "aws_secretsmanager_secret" "api_key" {
+  name                    = "devops-demo/third-party-api-key"
+  recovery_window_in_days = 7
+}
+
+# Arvo asetetaan Terraformin ulkopuolella, jotta se ei päädy tilaan:
+# aws secretsmanager put-secret-value --secret-id devops-demo/third-party-api-key --secret-string "..."</code></pre>
+
+<div class="warn">
+<p>Terraform tallentaa resurssien arvot tila-tiedostoon. Jos kirjoitat salasanan suoraan <code>value</code>-kenttään, se päätyy tilaan. Käytä RDS:n <code>manage_master_user_password</code>-asetusta tai aseta arvo erikseen (kuten yllä).</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="rds">
+<h2 class="module-title">7. RDS (Relational Database Service) PostgreSQL</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Hallittu relaatiotietokanta. AWS hoitaa asennuksen, varmuuskopiot, version päivitykset ja korkean saatavuuden. Sinä kirjoitat skeeman ja kyselyt.</p>
+<p><span class="label">Liittyy muihin:</span> VPC (yksityinen aliverkko), Security Groups, Secrets Manager, CloudWatch (mittarit), ECS/Lambda (asiakkaat). Geospatiaaliseen työhön: PostGIS on tuettu.</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Varmuuskopiot ja palautus:</span> automaattiset snapshotit ja pistekohtainen palautus (point-in-time recovery). Itse ylläpidettynä tämä on työlästä.</li>
+  <li><span class="label">Monivyöhykkeinen (Multi-AZ):</span> synkroninen varakopio toisessa AZ:ssa, automaattinen failover.</li>
+  <li><span class="label">Skaalaus:</span> instanssiluokan vaihto tai luku-replikat raskaalle lukukuormalle.</li>
+  <li><span class="label">Kehityksen Docker-vastine:</span> tuotannon kaltainen PostgreSQL ilman, että sitä tarvitsee ylläpitää itse.</li>
+</ul>
+
+<h3>Esimerkki</h3>
+<pre><code class="language-hcl">resource "aws_db_subnet_group" "db" {
+  name       = "demo-db"
+  subnet_ids = aws_subnet.private[*].id
+}
+
+resource "aws_security_group" "db" {
+  name   = "demo-db"
+  vpc_id = aws_vpc.main.id
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.app.id]   # vain sovellus pääsee
+  }
+}
+
+resource "aws_db_instance" "postgres" {
+  identifier              = "demo-postgres"
+  engine                  = "postgres"
+  engine_version          = "16"
+  instance_class          = "db.t4g.micro"
+  allocated_storage       = 20
+  max_allocated_storage   = 100          # automaattinen kasvu
+  db_name                 = "appdb"
+  username                = "appuser"
+  manage_master_user_password = true     # AWS luo salasanan Secrets Manageriin
+  db_subnet_group_name    = aws_db_subnet_group.db.name
+  vpc_security_group_ids  = [aws_security_group.db.id]
+  storage_encrypted       = true
+  publicly_accessible     = false
+  backup_retention_period = 7
+  multi_az                = false        # tuotannossa true
+  skip_final_snapshot     = true         # tuotannossa false
+  deletion_protection     = false        # tuotannossa true
+}</code></pre>
+
+<div class="tip">
+<p><strong>Django/FastAPI:</strong> sovelluksen <code>DATABASE_HOST</code> on RDS:n <code>address</code>-attribuutti (<code>aws_db_instance.postgres.address</code>), ja salasana haetaan Secrets Manageristä. Paikallisessa Docker Composessa sama rakenne toimii, vain host vaihtuu.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="ecs">
+<h2 class="module-title">8. ECS Fargate (Docker-kontit ilman palvelimia)</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> ECS (Elastic Container Service) ajaa Docker-kontteja. Fargate-tilassa et hallitse palvelimia lainkaan: määrittelet kontin koon ja määrän, AWS ajaa sen. Vaihtoehtoja ovat EC2-pohjainen ECS ja EKS (Kubernetes). Yksinkertaisuuden vuoksi Fargate on oikea valinta useimmille web-sovelluksille.</p>
+<p><span class="label">Liittyy muihin:</span> ECR (imaget), ALB (liikenne), CloudWatch (lokit), IAM (tehtäväroolit), Secrets Manager, VPC.</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Sovelluksen ajo konteissa:</span> sama Docker-image toimii kehityksessä ja tuotannossa, ja kontit voi ajaa useana kopiona.</li>
+  <li><span class="label">Automaattinen palautuminen:</span> ECS käynnistää kuolleen kontin uudelleen ja ylläpitää haluttua määrää (<code>desired_count</code>).</li>
+  <li><span class="label">Rolling deploy:</span> uusi versio käynnistyy vanhan rinnalle, ja liikenne siirtyy vasta terveenä. Virheen sattuessa vanha versio pysyy.</li>
+  <li><span class="label">Ei palvelinhallintaa:</span> ei käyttöjärjestelmäpäivityksiä, ei kapasiteettisuunnittelua.</li>
+</ul>
+
+<h3>Esimerkki: tehtävämääritys ja palvelu</h3>
+<pre><code class="language-hcl">resource "aws_cloudwatch_log_group" "app" {
+  name              = "/ecs/devops-demo"
+  retention_in_days = 14
+}
+
+# Tehtäväroolin on saatava lukea salaisuus RDS:n salasanaa varten
+resource "aws_iam_role_policy" "ecs_read_db_secret" {
+  name = "read-db-secret"
+  role = aws_iam_role.ecs_execution.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["secretsmanager:GetSecretValue"]
+      Resource = aws_db_instance.postgres.master_user_secret[0].secret_arn
+    }]
+  })
+}
+
+resource "aws_ecs_cluster" "main" {
+  name = "demo-cluster"
+}
+
+resource "aws_ecs_task_definition" "app" {
+  family                   = "devops-demo"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = aws_iam_role.ecs_execution.arn
+
+  container_definitions = jsonencode([{
+    name         = "app"
+    image        = "${aws_ecr_repository.app.repository_url}:latest"
+    essential    = true
+    portMappings = [{ containerPort = 8000, protocol = "tcp" }]
+
+    environment = [
+      { name = "DATABASE_HOST", value = aws_db_instance.postgres.address },
+      { name = "DATABASE_NAME", value = "appdb" },
+      { name = "DJANGO_DEBUG",  value = "0" }
+    ]
+
+    # JSON-avain "password" salaisuuden sisällä
+    secrets = [{
+      name      = "DATABASE_PASSWORD"
+      valueFrom = "${aws_db_instance.postgres.master_user_secret[0].secret_arn}:password::"
+    }]
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.app.name
+        "awslogs-region"        = "eu-north-1"
+        "awslogs-stream-prefix" = "app"
+      }
+    }
+  }])
+}
+
+resource "aws_ecs_service" "app" {
+  name            = "devops-demo"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.app.arn
+  desired_count   = 2
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = aws_subnet.public[*].id
+    security_groups  = [aws_security_group.app.id]
+    assign_public_ip = true   # tarvitaan ECR:n vetoon ilman NAT:ia
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.app.arn
+    container_name   = "app"
+    container_port   = 8000
+  }
+
+  depends_on = [aws_lb_listener.http]
+}</code></pre>
+
+<div class="tip">
+<p><strong>Next.js:</strong> sama malli toimii Next.js-kontille. Vaihda portti 3000:een ja käytä <code>output: "standalone"</code>-asetusta, jolloin imagesta tulee pieni. Frontendin staattiset assetit voi tarjota CloudFront-S3-yhdistelmällä (katso CloudFront-osio).</p>
+</div>
+
+<div class="warn">
+<p>Yllä olevassa esimerkissä tehtävät ovat julkisessa aliverkossa julkisella IP:llä, mutta Security Group sallii liikenteen vain ALB:ltä. Tuotannossa suositus on yksityinen aliverkko + NAT.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="alb">
+<h2 class="module-title">9. ALB (Application Load Balancer)</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Kuormantasaaja, joka ymmärtää HTTP-tason. Se jakaa pyynnöt terveille kohteille (target group), päättää TLS:n ja voi reitittää polkujen perusteella (esim. <code>/api/*</code> Djangolle, muu Next.js:lle).</p>
+<p><span class="label">Liittyy muihin:</span> ECS, ACM (TLS-sertifikaatit), Route 53 (DNS), Security Groups, CloudWatch.</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Terveyden tarkistus:</span> ALB poistaa kontit, jotka eivät vastaa <code>/health/</code>-polkuun, joten rikkinäinen versio ei saa liikennettä.</li>
+  <li><span class="label">Nollakatkoinen deploy:</span> uusi ECS-tehtävä rekisteröityy kohderyhmään vasta, kun se on terve.</li>
+  <li><span class="label">TLS-päätepiste:</span> sertifikaatti on ALB:llä, sovellus voi puhua HTTP:tä sisäverkossa.</li>
+  <li><span class="label">Polkureititys:</span> yksi domain, useita palveluita (monoliitti vs. API + frontend).</li>
+</ul>
+
+<h3>Esimerkki</h3>
+<pre><code class="language-hcl">resource "aws_lb" "app" {
+  name               = "demo-alb"
+  load_balancer_type = "application"
+  subnets            = aws_subnet.public[*].id
+  security_groups    = [aws_security_group.alb.id]
+}
+
+resource "aws_lb_target_group" "app" {
+  name        = "demo-tg"
+  port        = 8000
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.main.id
+  target_type = "ip"              # Fargate käyttää IP-osoitteita
+
+  health_check {
+    path                = "/health/"
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    interval            = 15
+  }
+}
+
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.app.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app.arn
+  }
+}</code></pre>
+
+<div class="tip">
+<p>Tuotannossa lisää HTTPS-kuuntelija (port 443) ACM-sertifikaatilla ja ohjaa HTTP → HTTPS. Sertifikaatti käsitellään seuraavassa Route 53 ja ACM -osiossa.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="logs">
+<h2 class="module-title">10. CloudWatch (lokit, mittarit, hälytykset)</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Havainnointipalvelu. Kerää lokit (Logs), mittarit (Metrics), hälytykset (Alarms) ja hallintapaneelit (Dashboards).</p>
+<p><span class="label">Liittyy muihin:</span> lähes kaikki AWS-palvelut tuottavat mittareita. ECS, Lambda, RDS, ALB.</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Vianetsintä:</span> sovelluksen <code>stdout</code>-loki näkyy ilman SSH-yhteyttä palvelimelle.</li>
+  <li><span class="label">Hälytykset:</span> esim. ALB:n 5xx-virheet tai RDS:n CPU yli 80 %. Hälytys voi lähettää SNS:n kautta sähköpostin tai Slackiin.</li>
+  <li><span class="label">Kustannushallinta:</span> lokeille voi asettaa säilytysajan (<code>retention_in_days</code>), muuten lokit kertyvät ja maksavat.</li>
+</ul>
+
+<h3>Esimerkki: hälytys ALB:n virheille</h3>
+<pre><code class="language-hcl">resource "aws_sns_topic" "alerts" {
+  name = "devops-demo-alerts"
+}
+
+resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
+  alarm_name          = "demo-alb-5xx-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "HTTPCode_Target_5XX_Count"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 10
+  dimensions = {
+    LoadBalancer = aws_lb.app.arn_suffix
+  }
+  alarm_actions = [aws_sns_topic.alerts.arn]
+}</code></pre>
+</section>
+
+<!-- ============================================================ -->
+<section id="s3">
+<h2 class="module-title">11. S3 (Simple Storage Service)</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Objektitallennus. Tallennat tiedostoja "bucketeihin" avaimen (polun) perusteella. Kestävyys on erittäin korkea ja kapasiteetti käytännössä rajaton.</p>
+<p><span class="label">Liittyy muihin:</span> CloudFront (jakelu), Lambda (tapahtumat), Athena (SQL tiedostoille), Glue (datakatalogi), Terraform (state), ECS (tiedostolataukset).</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Django-median ja staattisten tiedostojen tallennus:</span> tiedostot eivät katoa, kun kontti uusitaan. Kontit ovat väliaikaisia, S3 ei ole.</li>
+  <li><span class="label">Next.js-buildin staattiset assetit:</span> tarjotaan CloudFrontista.</li>
+  <li><span class="label">Data engineering:</span> raakadata-järvi (data lake), johon Airflow-DAGit kirjoittavat Parquet-tiedostoja.</li>
+  <li><span class="label">Varmuuskopiot:</span> ylimääräinen kopio tietokannan dumpeista, versioinnilla ja elinkaarisäännöillä.</li>
+</ul>
+
+<h3>Esimerkki: suojattu bucket</h3>
+<pre><code class="language-hcl">resource "aws_s3_bucket" "media" {
+  bucket = "toni-devops-demo-media-eu-north-1"
+}
+
+resource "aws_s3_bucket_public_access_block" "media" {
+  bucket                  = aws_s3_bucket.media.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_versioning" "media" {
+  bucket = aws_s3_bucket.media.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "media" {
+  bucket = aws_s3_bucket.media.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}</code></pre>
+
+<div class="warn">
+<p>S3-bucketit ovat yleisin syy tietovuotoihin, kun ne on tehty julkisiksi vahingossa. Pidä <code>public_access_block</code> aina päällä, ja jaa julkiset tiedostot CloudFrontin kautta.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="cloudfront">
+<h2 class="module-title">12. CloudFront (CDN)</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Sisältöjakeluverkko (CDN). Välimuistittaa sisältöä palvelinten lähellä ympäri maailmaa ja tarjoaa HTTPS:n ilmaiseksi sertifikaatilla.</p>
+<p><span class="label">Liittyy muihin:</span> S3 (alkuperä), ACM (sertifikaatti, pitää olla us-east-1), Route 53, WAF (palomuuri), Lambda@Edge.</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Nopeus:</span> Next.js-staattiset sivut ja kuvat tarjoillaan lähimmästä pisteestä Suomessa.</li>
+  <li><span class="label">Alkuperän suojaus:</span> Origin Access Control (OAC) sallii CloudFrontin lukea S3:a, mutta ei julkista pääsyä bucketiin.</li>
+  <li><span class="label">Kuorman vähennys:</span> välimuistissa olevat pyynnöt eivät osu sovellukseen tai tietokantaan.</li>
+</ul>
+
+<h3>Esimerkki</h3>
+<pre><code class="language-hcl">resource "aws_cloudfront_origin_access_control" "media" {
+  name                              = "media-oac"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
+resource "aws_cloudfront_distribution" "media" {
+  enabled             = true
+  default_root_object = "index.html"
+
+  origin {
+    domain_name              = aws_s3_bucket.media.bucket_regional_domain_name
+    origin_id                = "s3-media"
+    origin_access_control_id = aws_cloudfront_origin_access_control.media.id
+  }
+
+  default_cache_behavior {
+    target_origin_id       = "s3-media"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = true
+    forwarded_values {
+      query_string = false
+      cookies { forward = "none" }
+    }
+  }
+
+  restrictions {
+    geo_restriction { restriction_type = "none" }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+}
+
+# Bucket-politiikka: vain tämä CloudFront-jakelu saa lukea
+data "aws_iam_policy_document" "media_cf" {
+  statement {
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.media.arn}/*"]
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceArn"
+      values   = [aws_cloudfront_distribution.media.arn]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "media" {
+  bucket = aws_s3_bucket.media.id
+  policy = data.aws_iam_policy_document.media_cf.json
+}</code></pre>
+
+<div class="tip">
+<p>Next.js-sovelluksen dynaamiset API-reitit eivät kuulu CloudFrontin S3-alkuperään. Ne ohjataan yleensä ALB:lle, jolloin CloudFrontiin lisätään toinen origin.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="dns">
+<h2 class="module-title">13. Route 53 ja ACM (DNS ja TLS)</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Route 53 on DNS-palvelu (nimipalvelin). ACM (AWS Certificate Manager) myöntää ilmaiset TLS-sertifikaatit, jotka uusiutuvat automaattisesti.</p>
+<p><span class="label">Liittyy muihin:</span> ALB, CloudFront, API Gateway, S3-staattiset sivut.</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Oma domain sovellukselle:</span> <code>app.esimerkki.fi</code> osoittaa ALB:lle tai CloudFrontiin.</li>
+  <li><span class="label">HTTPS:</span> selain ei varoita, ja hakukoneet suosivat salattua liikennettä.</li>
+  <li><span class="label">Vaihdettava:</span> DNS-muutos on yksi Terraform-muutos, ei manuaalista säätöä.</li>
+</ul>
+
+<h3>Esimerkki</h3>
+<pre><code class="language-hcl">data "aws_route53_zone" "main" {
+  name = "esimerkki.fi"
+}
+
+resource "aws_acm_certificate" "app" {
+  domain_name       = "app.esimerkki.fi"
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Validointitietue: ACM pyytää todistuksen DNS-tasolla
+resource "aws_route53_record" "cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.app.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+  zone_id         = data.aws_route53_zone.main.zone_id
+  name            = each.value.name
+  type            = each.value.type
+  records         = [each.value.record]
+  ttl             = 60
+  allow_overwrite = true
+}
+
+resource "aws_acm_certificate_validation" "app" {
+  certificate_arn         = aws_acm_certificate.app.arn
+  validation_record_fqdns = [for r in aws_route53_record.cert_validation : r.fqdn]
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.app.arn
+  port              = 443
+  protocol          = "HTTPS"
+  certificate_arn   = aws_acm_certificate_validation.app.certificate_arn
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app.arn
+  }
+}
+
+resource "aws_route53_record" "app" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "app.esimerkki.fi"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.app.dns_name
+    zone_id                = aws_lb.app.zone_id
+    evaluate_target_health = true
+  }
+}</code></pre>
+
+<div class="tip">
+<p>Muista ohjata HTTP-kuuntelija (port 80) uudelleenohjaukseen HTTPS:lle tuotannossa. Kurssin ALB-esimerkissä HTTP on vielä päällä.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="ec2">
+<h2 class="module-title">14. EC2 (virtuaalipalvelin, VPS-vaihtoehto)</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Virtuaalipalvelin. Saat täyden hallinnan käyttöjärjestelmään, mutta myös vastuun päivityksistä, palomuurista ja skaalauksesta. EC2 on AWS:n vastine VPS:lle.</p>
+<p><span class="label">Liittyy muihin:</span> EBS (levy), Elastic IP, Auto Scaling, Systems Manager (ilman SSH:ta), VPC, IAM-instanssiprofiili.</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Kun tarvitset hallintaa:</span> omat ajurit, pitkäkestoiset prosessit, GPU-laskenta (esim. paikallisen mallin ajo pilvessä).</li>
+  <li><span class="label">Kun Fargate ei riitä:</span> ohjelmat, jotka vaativat käyttöjärjestelmätason pääsyn.</li>
+  <li><span class="label">Oppimisen kannalta:</span> ymmärrät, mitä ECS ja Fargate abstrahoivat pois.</li>
+</ul>
+
+<h3>Esimerkki: EC2 Docker-isännäksi</h3>
+<pre><code class="language-hcl">data "aws_ami" "al2023" {
+  most_recent = true
+  owners      = ["amazon"]
+  filter {
+    name   = "name"
+    values = ["al2023-ami-2023*-x86_64"]
+  }
+}
+
+resource "aws_instance" "vps" {
+  ami                         = data.aws_ami.al2023.id
+  instance_type               = "t3.micro"
+  subnet_id                   = aws_subnet.public[0].id
+  vpc_security_group_ids      = [aws_security_group.app.id]
+  associate_public_ip_address = true
+
+  # Ajetaan kerran ensimmäisellä käynnistyksellä
+  user_data = <<-EOF
+    #!/bin/bash
+    dnf install -y docker
+    systemctl enable --now docker
+    usermod -aG docker ec2-user
+  EOF
+
+  tags = { Name = "devops-demo-vps" }
+}</code></pre>
+
+<div class="tip">
+<p><strong>Ei SSH-avaimia:</strong> käytä AWS Systems Manager Session Manageria, jolloin porttia 22 ei tarvitse avata ollenkaan. Tarvitset siihen instanssiprofiilin, jolla on <code>AmazonSSMManagedInstanceCore</code>-politiikka.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="lambda">
+<h2 class="module-title">15. Lambda ja EventBridge</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Lambda ajaa koodia tapahtumien perusteella ilman palvelinta. Maksat vain ajoajasta. EventBridge on tapahtumaväylä, joka voi käynnistää Lambdan aikataulun (cron) tai muiden palveluiden tapahtumien perusteella.</p>
+<p><span class="label">Liittyy muihin:</span> S3 (tiedostotapahtumat), API Gateway (HTTP), SQS, RDS Proxy, CloudWatch, ECR (kontti-imagena).</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Ajastetut tehtävät:</span> päivittäinen ETL, joka hakee datan API:sta ja kirjoittaa sen PostgreSQL:ään tai S3:een.</li>
+  <li><span class="label">Tapahtumapohjainen käsittely:</span> tiedosto ilmestyy S3:een, Lambda käsittelee sen heti.</li>
+  <li><span class="label">Kun kuorma on epätasainen:</span> ei kiinteää kapasiteettia, joka seisoo tyhjillään yöllä.</li>
+</ul>
+
+<h3>Esimerkki: ajastettu ETL-funktio konttina</h3>
+<pre><code class="language-hcl">data "aws_iam_policy_document" "lambda_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "lambda" {
+  name               = "daily-etl-role"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_logs" {
+  role       = aws_iam_role.lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_lambda_function" "etl" {
+  function_name = "daily-etl"
+  role          = aws_iam_role.lambda.arn
+  package_type  = "Image"
+  image_uri     = "${aws_ecr_repository.app.repository_url}:etl-latest"
+  timeout       = 300
+  memory_size   = 512
+}
+
+resource "aws_cloudwatch_event_rule" "daily" {
+  name                = "daily-etl-schedule"
+  schedule_expression = "cron(0 3 * * ? *)"   # joka päivä klo 03:00 UTC
+}
+
+resource "aws_cloudwatch_event_target" "daily_etl" {
+  rule = aws_cloudwatch_event_rule.daily.name
+  arn  = aws_lambda_function.etl.arn
+}
+
+resource "aws_lambda_permission" "allow_events" {
+  statement_id  = "AllowEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.etl.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.daily.arn
+}</code></pre>
+
+<div class="tip">
+<p><strong>Data engineering -vinkki:</strong> Airflow ajaa DAG:it omalla infrastruktuurillaan, mutta yksinkertaiset ajastetut tehtävät voi siirtää Lambdaan. Lambdan 15 minuutin raja tekee siitä huonon raskaille erille, joissa Fargate (ECS scheduled task) on parempi.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="cicd">
+<h2 class="module-title">16. CI/CD: GitHub Actions ja OIDC</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Automaattinen putki, joka testaa, rakentaa ja julkaisee koodin. AWS-puolella yhdistät GitHub Actionsin IAM-rooliin OIDC:n avulla, jolloin pitkäaikaisia AWS-avaimia ei tarvita lainkaan.</p>
+<p><span class="label">Liittyy muihin:</span> ECR (kuvien työntö), ECS (deploy), IAM (OIDC-rooli), Terraform (infrastruktuurin apply), CodePipeline ja CodeBuild (AWS-natiivi vaihtoehto).</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Toistettava julkaisu:</span> jokainen merge mainiin tuottaa saman prosessin ja saman tuloksen.</li>
+  <li><span class="label">Ei salaisuuksia repossa:</span> OIDC antaa putkelle väliaikaisen roolin, joka vanhenee automaattisesti.</li>
+  <li><span class="label">Turvallisuus:</span> rooli rajataan vain tiettyyn repositorioon ja haaraan.</li>
+</ul>
+
+<h3>Esimerkki: OIDC-luottamus ja rooli</h3>
+<pre><code class="language-hcl">resource "aws_iam_openid_connect_provider" "github" {
+  url             = "https://token.actions.githubusercontent.com"
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
+}
+
+data "aws_iam_policy_document" "gha_assume" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.github.arn]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+    # Vain tämä repo ja main-haara saavat ottaa roolin
+    condition {
+      test     = "StringLike"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = ["repo:TONI_GITHUB_KÄYTTÄJÄ/devops-portfolio:ref:refs/heads/main"]
+    }
+  }
+}
+
+resource "aws_iam_role" "github_deploy" {
+  name               = "github-actions-deploy"
+  assume_role_policy = data.aws_iam_policy_document.gha_assume.json
+}</code></pre>
+
+<h3>Workflow-tiedosto GitHubissa</h3>
+<pre><code class="language-yaml">name: deploy
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write    # tarvitaan OIDC-tokeniin
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/github-actions-deploy
+          aws-region: eu-north-1
+
+      - name: Kirjaudu ECR:ään
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Rakenna ja työnnä image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          TAG: ${{ github.sha }}
+        run: |
+          docker build -t $REGISTRY/devops-demo:$TAG .
+          docker push $REGISTRY/devops-demo:$TAG
+
+      - name: Päivitä ECS-palvelu
+        run: |
+          aws ecs update-service --cluster demo-cluster --service devops-demo --force-new-deployment</code></pre>
+
+<div class="tip">
+<p>Yllä <code>latest</code>-tagin sijaan käytetään commit-hashia, jolloin jokainen versio on jäljitettävissä. Tuotannon task definitionin image-tagi päivitetään Terraformilla tai ECS-deployn kautta.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="harjoitus">
+<h2 class="module-title">17. Kokoava harjoitus</h2>
+
+<div class="card">
+<p>Rakenna kokonaisuus, jossa on seuraavat osat, ja pidä jokainen vaihe omassa Terraform-moduulissaan tai tiedostossaan:</p>
+<ol>
+  <li>Backend (S3 + DynamoDB) ja provider.</li>
+  <li>VPC, julkiset ja yksityiset aliverkot, Security Groupit.</li>
+  <li>ECR ja Docker-kuva Django- tai FastAPI-sovelluksestasi.</li>
+  <li>RDS PostgreSQL yksityisessä aliverkossa, salasana Secrets Managerissa.</li>
+  <li>ECS Fargate -palvelu, ALB ja CloudWatch-lokit.</li>
+  <li>Hälytys ALB:n 5xx-virheille.</li>
+  <li>GitHub Actions OIDC:llä ja automaattinen deploy <code>main</code>-haaraan.</li>
+</ol>
+
+<h3>Tarkistuslista</h3>
+<table>
+  <tr><th>Kysymys</th><th>Vastaus, jonka pitäisi tulla mieleen</th></tr>
+  <tr><td>Miksi tietokanta on yksityisessä aliverkossa?</td><td>Sitä ei voi tavoittaa internetistä, ja pääsy rajataan Security Groupilla sovellukseen.</td></tr>
+  <tr><td>Miksi ECS-tehtävällä on kaksi roolia?</td><td>Execution role hakee imagen ja lokit, task role antaa sovellukselle oikeudet AWS-palveluihin.</td></tr>
+  <tr><td>Miksi tila on S3:ssa?</td><td>Jaettu, salattu ja versioitu tila, jota voi lukita DynamoDB:llä.</td></tr>
+  <tr><td>Miksi OIDC on parempi kuin AWS-avaimet CI:ssä?</td><td>Tokenit vanhenevat, eikä salaisuuksia tarvitse tallentaa repoon.</td></tr>
+  <tr><td>Mikä on Fargaten ja EC2:n ero?</td><td>Fargatessa AWS hallitsee palvelimet, EC2:ssa hallitset itse käyttöjärjestelmän.</td></tr>
+</table>
+
+<div class="tip">
+<p><strong>Seuraava askel:</strong> Kun tämä toimii, lisää Django-sovelluksesi <code>/health/</code>-päätepiste, sähköpostit SES:llä ja pidä kustannukset kurissa Cost Explorerilla. Devops-portfoliosi kannalta kokonaisuus, jossa on yksi Terraform-ajo, CI/CD ja hälytykset, on jo vahva näyte.</p>
+</div>
+</section>
+
+<footer>
+  <p>Kurssi on tarkoitettu oppimiseen. Muista tarkistaa palvelujen hinnat ja ominaisuudet AWS:n virallisesta dokumentaatiosta, sillä palvelut ja hinnat muuttuvat.</p>
+</footer>
+
+</main>
+</div>
+</body>
+</html>
