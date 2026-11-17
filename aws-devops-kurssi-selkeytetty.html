@@ -1,0 +1,1770 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AWS DevOps -pikakurssi (Terraform)</title>
+<style>
+:root {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --text: #1d2330;
+  --muted: #5b6474;
+  --accent: #e8891f;
+  --accent-2: #2f6fdb;
+  --border: #dde1e8;
+  --code-bg: #14171f;
+  --code-text: #e6edf7;
+  --tip: #fff6e8;
+  --warn: #fdecec;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1217;
+    --surface: #171b23;
+    --text: #e6e9ef;
+    --muted: #9aa3b2;
+    --accent: #f0a24a;
+    --accent-2: #6b9cf0;
+    --border: #2a303b;
+    --code-bg: #0a0c10;
+    --code-text: #dfe6f2;
+    --tip: #2a2216;
+    --warn: #2e1717;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1217;
+  --surface: #171b23;
+  --text: #e6e9ef;
+  --muted: #9aa3b2;
+  --accent: #f0a24a;
+  --accent-2: #6b9cf0;
+  --border: #2a303b;
+  --code-bg: #0a0c10;
+  --code-text: #dfe6f2;
+  --tip: #2a2216;
+  --warn: #2e1717;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+.layout { display: flex; min-height: 100vh; }
+nav.toc {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 24px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+nav.toc h2 { font-size: 1rem; margin: 0 0 12px; color: var(--accent); }
+nav.toc ol { padding-left: 18px; margin: 0; }
+nav.toc li { margin: 6px 0; font-size: 0.92rem; }
+nav.toc a { color: var(--text); text-decoration: none; }
+nav.toc a:hover { color: var(--accent-2); }
+main {
+  flex: 1;
+  max-width: 1080px;
+  padding: 32px 40px 80px;
+  min-width: 0;
+}
+header.hero {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  border-radius: 14px;
+  padding: 32px;
+  margin-bottom: 32px;
+}
+header.hero h1 { margin: 0 0 8px; font-size: 2rem; }
+header.hero p { margin: 0; opacity: 0.95; }
+h2.module-title {
+  font-size: 1.6rem;
+  margin: 48px 0 8px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--accent);
+}
+h3 { font-size: 1.1rem; margin: 24px 0 8px; color: var(--accent-2); }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin: 16px 0;
+}
+.tip { background: var(--tip); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; margin: 16px 0; }
+.warn { background: var(--warn); border-left: 4px solid #d64545; border-radius: 8px; padding: 14px 18px; margin: 16px 0; }
+.services { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.services span {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 0.88rem;
+}
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.95rem; }
+th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: var(--surface); }
+code { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.9em; }
+p code, li code { background: var(--surface); border: 1px solid var(--border); padding: 1px 5px; border-radius: 4px; }
+pre {
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 16px 18px;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: none; padding: 0; }
+.purpose-list li { margin: 8px 0; }
+.label { font-weight: 600; color: var(--accent); }
+footer { margin-top: 64px; color: var(--muted); font-size: 0.9rem; }
+@media (max-width: 860px) {
+  .layout { flex-direction: column; }
+  nav.toc { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }
+  main { padding: 20px; }
+}
+
+.price { background: var(--surface); border: 1px dashed var(--accent); border-radius: 12px; padding: 16px 20px; margin: 20px 0; }
+.price h3 { margin-top: 0; color: var(--accent); }
+.price table { font-size: 0.92rem; }
+.lead { font-size: 1.08rem; color: var(--muted); }
+.path { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 16px 0; }
+.path > div { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.path strong { display: block; margin-bottom: 5px; color: var(--accent-2); }
+.step-list li { margin: 9px 0; }
+.definition { border-left: 3px solid var(--accent-2); padding: 8px 14px; margin: 12px 0; background: var(--surface); }
+.small-note { color: var(--muted); font-size: 0.9rem; }
+pre { tab-size: 2; }
+@media (max-width: 600px) {
+  main { padding: 18px 14px 60px; }
+  header.hero { padding: 24px 20px; }
+  header.hero h1 { font-size: 1.65rem; }
+  .card, .price { padding: 16px; }
+  table { display: block; overflow-x: auto; white-space: normal; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc">
+  <h2>Sisältö</h2>
+  <ol>
+    <li><a href="#kurssin-kaytto">Kurssin käyttö ja tavoitteet</a></li>
+    <li><a href="#johdanto">1. Johdanto ja pelisäännöt</a></li>
+    <li><a href="#hinnat">Hinnat ja ilmainen taso</a></li>
+    <li><a href="#terraform-perusta">2. Terraform-perusta</a></li>
+    <li><a href="#iam">3. IAM</a></li>
+    <li><a href="#vpc">4. VPC ja verkko</a></li>
+    <li><a href="#ecr">5. ECR</a></li>
+    <li><a href="#secrets">6. Secrets Manager</a></li>
+    <li><a href="#rds">7. RDS (PostgreSQL)</a></li>
+    <li><a href="#ecs">8. ECS Fargate</a></li>
+    <li><a href="#eks">9. EKS (syventävä)</a></li>
+    <li><a href="#alb">10. ALB</a></li>
+    <li><a href="#logs">11. CloudWatch</a></li>
+    <li><a href="#s3">12. S3</a></li>
+    <li><a href="#cloudfront">13. CloudFront</a></li>
+    <li><a href="#dns">14. Route 53 ja ACM</a></li>
+    <li><a href="#ec2">15. EC2</a></li>
+    <li><a href="#lambda">16. Lambda ja EventBridge</a></li>
+    <li><a href="#cicd">17. CI/CD ja OIDC</a></li>
+    <li><a href="#eventdriven">18. Event-driven -palikat</a></li>
+    <li><a href="#harjoitus">19. Kokoava harjoitus</a></li>
+    <li><a href="#sanasto">Pieni sanasto</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<header class="hero">
+  <h1>AWS DevOps -pikakurssi</h1>
+  <p>Terraformilla rakennettava infrastruktuuri Python-, Django-/FastAPI-, Next.js-, PostgreSQL- ja Docker-sovelluksille.</p>
+</header>
+
+<section id="kurssin-kaytto">
+<h2 class="module-title">Kurssin käyttö ja oppimistavoitteet</h2>
+<div class="card">
+<p class="lead">Tämä materiaali opettaa rakentamaan ja julkaisemaan pienen web-sovelluksen AWS:ään infrastruktuuri koodina -periaatteella. Tavoitteena ei ole opetella ulkoa kaikkia AWS-palveluita, vaan ymmärtää, miten sovelluksen osat liittyvät toisiinsa.</p>
+<h3>Kurssin jälkeen osaat</h3>
+<ul class="purpose-list">
+  <li>kuvata AWS-infrastruktuurin Terraformilla ja tarkistaa muutokset ennen niiden toteuttamista</li>
+  <li>erottaa verkon, sovelluksen, tietokannan ja tiedostojen tallennuksen vastuut toisistaan</li>
+  <li>rakentaa Docker-imagen, tallentaa sen ECR:ään ja ajaa sen ECS Fargatessa</li>
+  <li>hallita sovelluksen käyttöoikeuksia IAM-rooleilla ja säilyttää salaisuudet erillään lähdekoodista</li>
+  <li>kerätä lokit ja mittarit sekä julkaista uusi sovellusversio GitHub Actionsilla</li>
+</ul>
+<h3>Suositellut esitiedot</h3>
+<p>Hyödyksi ovat Gitin, komentorivin, Dockerin, HTTP:n ja tietokantojen perusteet. Python- ja Django/FastAPI-osaaminen helpottaa esimerkkien soveltamista. Kubernetesia ei tarvitse osata etukäteen.</p>
+<h3>Opiskelujärjestys</h3>
+<div class="path">
+  <div><strong>1. Perusta</strong>Terraform, IAM ja VPC: miten infrastruktuuri kuvataan, suojataan ja verkotetaan.</div>
+  <div><strong>2. Sovellus</strong>ECR, Secrets Manager, RDS, ECS ja ALB: miten sovellus paketoidaan ja tuodaan käyttäjien saataville.</div>
+  <div><strong>3. Käyttö ja ylläpito</strong>CloudWatch, S3, DNS, sertifikaatit ja CI/CD: miten palvelua seurataan ja päivitetään.</div>
+  <div><strong>4. Syventävät aiheet</strong>EKS, EC2, Lambda ja tapahtumapohjainen arkkitehtuuri: vaihtoehtoisia tapoja ratkaista erilaisia tarpeita.</div>
+</div>
+<div class="tip">
+<p><strong>Suositus:</strong> Tee ensin kurssin peruspolku Terraformista ECS:ään. EKS, EC2 ja event-driven-palvelut ovat täydentäviä aiheita, eivät edellytys ensimmäisen web-sovelluksen julkaisemiselle.</p>
+</div>
+<h3>Työkalut ja turvallinen aloitus</h3>
+<p>Tarvitset AWS-tilin, AWS CLI:n, Terraformin (vähintään 1.10 S3:n natiivia state-lukitusta varten), Dockerin, Gitin ja GitHub-repositorion. Käytä AWS:ään kirjautumiseen ensisijaisesti väliaikaisia tunnuksia esimerkiksi IAM Identity Centerin kautta. Ota monivaiheinen tunnistautuminen käyttöön äläkä käytä root-käyttäjää päivittäiseen työhön.</p>
+<p>Esimerkkien nimet, domainit, tilitunnisteet ja salaisuudet ovat paikkamerkkejä. Korvaa ne omilla arvoillasi. Terraform-koodikatkelmat havainnollistavat yksittäisiä resursseja; ne eivät muodosta yhtä sellaisenaan ajettavaa projektia, ellei kaikkia riippuvuuksia, muuttujia ja tiedostoja ole lisätty.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="johdanto">
+<h2 class="module-title">1. Johdanto ja pelisäännöt</h2>
+
+<div class="card">
+<p>AWS (Amazon Web Services) tarjoaa satoja pilvipalveluita. DevOps-työssä et tarvitse niitä kaikkia. Tässä kurssissa keskitytään tavallisen web-sovelluksen ympäristöön: verkkoon, tietokantaan, konttien ajamiseen, kuormantasaamiseen, tiedostoihin, DNS:ään, lokitukseen ja automaatioon.</p>
+<p>Kolme käsitettä muodostavat AWS:n maantieteellisen ja hallinnollisen perustan:</p>
+<ul class="purpose-list">
+  <li><span class="label">Region (alue)</span>: maantieteellinen AWS-alue, esimerkiksi <code>eu-north-1</code> eli Tukholma. Resurssi luodaan yleensä tiettyyn regioniin. Valintaan vaikuttavat latenssin lisäksi palveluiden saatavuus, tietojen sijaintivaatimukset ja hinta — lähin alue ei ole automaattisesti paras kaikissa tilanteissa.</li>
+  <li><span class="label">Availability Zone (AZ, saatavuusvyöhyke)</span>: regionin sisäinen erillinen sijainti, jolla on omat infrastruktuurinsa. Käyttämällä useampaa AZ:ta voidaan parantaa vikasietoisuutta, mutta se voi myös kasvattaa kustannuksia.</li>
+  <li><span class="label">AWS Account (tili)</span>: hallinnollinen, käyttöoikeuksiin ja laskutukseen liittyvä raja. Erilliset tilit esimerkiksi kehitykselle ja tuotannolle auttavat rajaamaan virheiden ja väärien käyttöoikeuksien vaikutuksia.</li>
+</ul>
+</div>
+
+<h3>Kustannus- ja turvallisuusvaroitus</h3>
+<div class="warn">
+<p>AWS voi veloittaa varatuista resursseista myös silloin, kun sovelluksella ei ole käyttäjiä. Esimerkiksi NAT Gateway, Application Load Balancer ja käynnissä oleva RDS-instanssi kerryttävät kustannuksia tyhjäkäynnilläkin. Myös tallennus, julkiset IP-osoitteet, lokit ja datasiirrot voivat maksaa erikseen.</p>
+<ul>
+  <li>Aseta laskutushälytys heti (AWS Budgets, esim. 10 €/kk).</li>
+  <li>Kokeile aina <code>terraform plan</code> ennen <code>apply</code>-komentoa.</li>
+  <li>Opettelun jälkeen aja <code>terraform destroy</code>, ettet jätä resursseja pyörimään.</li>
+  <li>Älä koskaan kirjoita avaimia koodiin tai tiedostoihin. Käytä IAM-rooleja ja Secrets Manageria.</li>
+</ul>
+</div>
+
+<h3>Kurssin palvelukartta</h3>
+<div class="card">
+<p>Alla on kurssin tavoitearkkitehtuuri. Kaikkia osia ei tarvitse rakentaa samalla kertaa:</p>
+<pre><code>                           DNS-kysely
+Käyttäjän selain ─────────────────────────→ Route 53
+       │                                      │
+       │ HTTPS                                └─ palauttaa palvelun osoitteen
+       ▼
+ALB (TLS päättyy tähän; sertifikaatti ACM:stä)
+       │ HTTP sovellusverkossa
+       ▼
+ECS Fargate -tehtävät (Django / FastAPI / Next.js)
+       │                  │
+       │ SQL-yhteys       └─ salaisuudet käynnistyksessä Secrets Managerista
+       ▼
+RDS PostgreSQL (yksityinen aliverkko)
+
+Staattiset tiedostot: S3 ──→ CloudFront ──→ selain
+Lokit ja mittarit: ECS / ALB / RDS ──→ CloudWatch
+Julkaisu: GitHub ──→ Actions + OIDC ──→ ECR ──→ uusi ECS-tehtäväversio</code></pre>
+<p class="small-note">Huomaa: ACM ei ole käyttäjän verkkopyynnön välissä kulkeva palvelu. Se hallitsee TLS-sertifikaattia, jonka ALB tai CloudFront ottaa käyttöön HTTPS-yhteyden salaamiseen.</p>
+</div>
+</section>
+
+
+<!-- ============================================================ -->
+<section id="hinnat">
+<h2 class="module-title">Hinnat ja ilmainen taso</h2>
+
+<div class="card">
+<p>Tuntihinta näyttää pieneltä, mutta jatkuvasti käynnissä oleva resurssi toimii kuukaudessa noin 730 tuntia. Alla olevat kuukausiarviot on laskettu kaavalla <strong>tuntihinta × 730 h</strong>. Hinnat ovat suuntaa antavia USD-listahintoja (tarkistus marraskuussa 2026), eivät laskun kokonaishinta. Region, käyttöjärjestelmä/CPU-arkkitehtuuri, pyyntömäärät, tallennus, varmuuskopiot, datasiirrot ja verot voivat muuttaa summaa. Fargate-hinnat ovat Pohjois-Virginian (us-east-1) listahintoja, joten Tukholman (eu-north-1) summa voi poiketa. Varmista oma skenaario AWS Pricing Calculatorilla juuri ennen käyttöönottoa.</p>
+</div>
+
+<h3>Ilmainen taso uusilla tileillä</h3>
+<div class="card">
+<p><strong>Tilanne tarkistettu 17.11.2026:</strong> AWS:n uusien asiakkaiden Free Tier -mallissa voi saada enintään <strong>200 USD krediittejä</strong>: 100 USD tilin avaamisen yhteydessä ja enintään 100 USD lisää palveluihin tutustumisen perusteella. Krediitit ovat käytettävissä enintään kuusi kuukautta tilin avaamisesta tai kunnes ne loppuvat. Tarkka etu ja käyttöoikeus riippuvat tilin tilasta.</p>
+<table>
+  <tr><th>Tilityyppi</th><th>Mitä saat</th><th>Huomio</th></tr>
+  <tr><td>Free plan</td><td>Valikoitu joukko palveluita ja krediitit ehtojen mukaan</td><td>Kaikki AWS-palvelut eivät ole käytettävissä. Maksullisiin palveluihin siirtyminen edellyttää tilin päivittämistä Paid plan -tasolle. Free plan päättyy ehtojen mukaisesti kuuden kuukauden tai krediittien loppumisen jälkeen.</td></tr>
+  <tr><td>Paid plan</td><td>Pääsy kaikkiin AWS-palveluihin ja mahdolliset Free Tier -krediitit</td><td>Käyttö laskutetaan normaalisti; käytettävissä olevat krediitit hyvitetään laskusta. Krediittien loputtua käyttö jatkuu maksullisena.</td></tr>
+  <tr><td>Aiemmin avattu AWS-tili</td><td>Tilin perustamisajankohtaan ja aiempiin ehtoihin perustuvat edut</td><td>Älä oleta vanhan 12 kuukauden tarjouksen tai uuden Free planin ehtoja. Tarkista tilisi Credits- ja Billing-näkymästä.</td></tr>
+</table>
+<div class="warn">
+<p>Älä rakenna harjoituksen budjettia oletetun ilmaisen käyttöajan varaan. Tarkista tilisi suunnitelma ja krediittien voimassaolo AWS-konsolista. Budgets-hälytys ilmoittaa kustannuksista, mutta se ei ole ehdoton kulutuskatto eikä estä kaikkia veloituksia.</p>
+</div>
+</div>
+
+<h3>Hinta tunnilta ja kuukaudessa</h3>
+<div class="card">
+<table>
+  <tr><th>Komponentti</th><th>Hinta / tunti</th><th>Hinta / kk (×730 h)</th><th>Huomio</th></tr>
+  <tr><td>ALB (Application Load Balancer)</td><td>0,0225 $</td><td>≈ 16,43 $</td><td>Lisäksi LCU-maksu 0,008 $/LCU-h, eli pienellä liikenteellä noin 6 $/kk</td></tr>
+  <tr><td>NAT Gateway (per AZ)</td><td>0,045 $</td><td>≈ 32,85 $</td><td>Lisäksi 0,045 $ per käsitelty GB. Kaksi AZ:tä = noin 65,70 $/kk</td></tr>
+  <tr><td>Fargate 0,25 vCPU / 0,5 GB</td><td>0,0123 $</td><td>≈ 9,01 $</td><td>Yksi tehtävä</td></tr>
+  <tr><td>Fargate 0,5 vCPU / 1 GB</td><td>0,0247 $</td><td>≈ 18,02 $</td><td>Yksi tehtävä</td></tr>
+  <tr><td>Fargate 1 vCPU / 2 GB</td><td>0,0494 $</td><td>≈ 36,04 $</td><td>Yksi tehtävä</td></tr>
+  <tr><td>RDS db.t4g.micro (single-AZ, Tukholma)</td><td>≈ 0,016 $</td><td>≈ 12 $</td><td>Tukholman hinta on lähteen mukaan halvin Euroopan alueista</td></tr>
+  <tr><td>RDS db.t4g.micro (Multi-AZ)</td><td>≈ 0,033 $</td><td>≈ 24 $</td><td>Tuotannossa suositeltava</td></tr>
+  <tr><td>Julkinen IPv4-osoite</td><td>0,005 $</td><td>≈ 3,65 $</td><td>Koskee kaikkia julkisia IP-osoitteita: EC2, ALB ja Fargate-tehtävät, joille on annettu julkinen IP</td></tr>
+  <tr><td>Route 53 hosted zone</td><td>—</td><td>0,50 $</td><td>Lisäksi 0,40 $ / miljoona kyselyä</td></tr>
+  <tr><td>Secrets Manager (salaisuus)</td><td>—</td><td>0,40 $</td><td>Lisäksi 0,05 $ / 10 000 API-kutsua</td></tr>
+  <tr><td>CloudWatch-hälytys (standard)</td><td>—</td><td>0,10 $</td><td>Ensimmäiset 10 hälytystä aina ilmaisia</td></tr>
+  <tr><td>ECR-tallennus</td><td>—</td><td>noin 0,10 $ / GB</td><td>Pienet imagen koot maksavat vain muutaman sentin</td></tr>
+  <tr><td>S3 Standard (Tukholma)</td><td>—</td><td>0,023 $ / GB</td><td>Lisäksi pyyntöhinnat ja siirto ulos</td></tr>
+  <tr><td>Data transfer out (internet)</td><td>—</td><td>0,09 $ / GB</td><td>Ensimmäiset 100 GB/kk ilmaisia kaikille</td></tr>
+</table>
+</div>
+
+<h3>Kolme kustannusskenaariota</h3>
+<div class="card">
+<table>
+  <tr><th>Skenaario</th><th>Arvio kuukaudessa</th><th>Mitä siihen kuuluu</th></tr>
+  <tr><td>Opiskelu: pystytä, kokeile, tuhoa</td><td>noin 0,09 $/h, eli esim. 3 h ≈ 0,30 $</td><td>ALB, 2 Fargate-tehtävää (0,25 vCPU), RDS single-AZ, IP-osoitteet. Ei NAT:ia.</td></tr>
+  <tr><td>Kurssiversio pyörii kuukauden ajan</td><td>noin 65–75 $</td><td>Suuntaa antava arvio. ALB:n LCU-käyttö, tehtävien ja ALB:n julkiset IPv4-osoitteet sekä tietokannan tallennus vaikuttavat summaan. Ei NAT:ia tai Multi-AZ:ta.</td></tr>
+  <tr><td>Tuotantotason versio</td><td>noin 150 $</td><td>2 NAT Gatewayta (65,70 $), Multi-AZ RDS (24 $), ALB (~22 $), 2 Fargate-tehtävää (18 $), IP-osoitteet (~11 $), monitorointi ja salaisuudet (~5 $)</td></tr>
+  <tr><td>Vaihtoehto: EC2 VPS (t3.micro)</td><td>noin 13–15 $</td><td>Instanssi noin 9 $ (arvio, tarkista), 8 GB EBS noin 1 $ ja julkinen IP 3,65 $</td></tr>
+</table>
+<div class="tip">
+<p><strong>Huomaa:</strong> NAT Gateway voi muodostaa suuren kiinteän kuukausikulun, vaikka liikennettä olisi vähän. Julkisessa aliverkossa oleva Fargate-tehtävä tarvitsee julkisen IP:n päästäkseen suoraan internetiin. Jokainen julkinen IPv4-osoite voi aiheuttaa erillisen maksun. Kurssin kustannusesimerkissä käytetään tätä yksinkertaistettua verkkoratkaisua; tuotannon verkkoratkaisu suunnitellaan erikseen.</p>
+</div>
+</div>
+
+<div class="warn">
+<p>Ota aina käyttöön <strong>Budgets</strong>-hälytys ja tarkista Cost Explorer viikoittain. Laskutus näkyy usein vasta päivien viiveellä.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="terraform-perusta">
+<h2 class="module-title">2. Terraform-perusta</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<p>Terraform CLI:n käyttö ei itsessään aiheuta AWS-resurssimaksua. Kustannus syntyy esimerkiksi state-tiedoston S3-tallennuksesta ja pyynnöistä. Tässä esimerkissä käytetään S3:n omaa lukitustiedostoa, joten erillistä DynamoDB-taulua ei tarvita.</p>
+</div>
+
+<div class="card">
+<p>Terraform on infrastructure as code (IaC) -työkalu. Kuvaat halutun infrastruktuurin HCL-tiedostoihin. Terraform vertaa kuvausta tallennettuun tilaan (<em>state</em>) ja AWS:n todellisiin resursseihin, minkä perusteella se ehdottaa luotavia, muutettavia tai poistettavia resursseja.</p>
+<p><span class="label">Liittyy muihin:</span> AWS Provider (AWS:n API-rajapintaa käyttävä lisäosa), S3 (jaettu state-tiedosto), CI/CD-putket ja IAM (Terraformin käyttöoikeudet).</p>
+<div class="definition"><strong>Tärkeät Terraform-termit:</strong> <em>resource</em> luo tai hallitsee resurssia, <em>data source</em> lukee jo olemassa olevan tiedon, <em>provider</em> yhdistää Terraformin palveluun ja <em>state</em> pitää kirjaa Terraformin hallitsemista resursseista.</div>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li>Infrastruktuuri on toistettava: sama koodi tuottaa saman ympäristön kehitykseen, testiin ja tuotantoon.</li>
+  <li>Muutokset näkyvät versionhallinnassa ja niistä voi tehdä katselmoinnin pull requestilla.</li>
+  <li>Konsoliklikkailu ei skaalaudu eikä jää dokumentoiduksi. Koodi on dokumentaatio.</li>
+  <li><code>plan</code>-vaihe näyttää etukäteen, mitä muuttuu, ja vähentää yllätyksiä.</li>
+</ul>
+
+<h3>Perusrakenne ja tilan tallennus</h3>
+<pre><code class="language-hcl">terraform {
+  # S3:n natiivi state-lukitus on käytettävissä Terraform 1.10+:ssa.
+  required_version = ">= 1.10.0"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0" # kurssin esimerkit on kirjoitettu AWS Provider 5.x:lle
+    }
+  }
+  backend "s3" {
+    bucket       = "YOUR-UNIQUE-TFSTATE-BUCKET"
+    key          = "devops-demo/terraform.tfstate"
+    region       = "eu-north-1"
+    encrypt      = true
+    use_lockfile = true
+  }
+}
+
+provider "aws" {
+  region = "eu-north-1"
+  # Tagit kaikille resursseille automaattisesti (kustannusseuranta!)
+  default_tags {
+    tags = {
+      Project   = "devops-demo"
+      ManagedBy = "terraform"
+    }
+  }
+}</code></pre>
+
+<div class="tip">
+<p><strong>Vinkki:</strong> Tila (<code>terraform.tfstate</code>) voi sisältää salaisuuksia ja muita arkaluontoisia arvoja. Älä koskaan committaa sitä Gitiin. Käytä S3-backendia, versionointia, julkisen käytön estoa ja tarkasti rajattuja IAM-oikeuksia.</p>
+</div>
+<div class="warn">
+<p><strong>Backend pitää alustaa ensin:</strong> S3-bucketin täytyy olla olemassa ennen kuin Terraform voi tallentaa state-tiedoston siihen. Luo backend-bucket erillisellä pienellä bootstrap-konfiguraatiolla tai AWS-konsolissa. Ota bucketin versionointi ja julkisen käytön esto käyttöön. Lisää tämän jälkeen S3-backend yllä olevaan konfiguraatioon ja suorita <code>terraform init -migrate-state</code>, jos siirrät aiemmin paikallisesti tallennetun tilan.</p>
+<p>Esimerkki käyttää S3:n omaa <code>use_lockfile</code>-lukitusta. Vanha DynamoDB-lukitus on HashiCorpin nykyisessä S3-backend-dokumentaatiossa vanhentuvaksi merkitty vaihtoehto.</p>
+<h3>Esimerkki: backend-bucketin bootstrap</h3>
+<p>Seuraava pieni konfiguraatio ajetaan ensin erillisessä hakemistossa paikallisella state-tiedostolla. Lisää tähän lisäksi bucketin nimen yksilöllisyys ja käyttöoikeudet organisaatiosi tarpeiden mukaan.</p>
+<pre><code class="language-hcl">resource "aws_s3_bucket" "tfstate" {
+  bucket = "YOUR-UNIQUE-TFSTATE-BUCKET"
+}
+
+resource "aws_s3_bucket_versioning" "tfstate" {
+  bucket = aws_s3_bucket.tfstate.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "tfstate" {
+  bucket                  = aws_s3_bucket.tfstate.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "tfstate" {
+  bucket = aws_s3_bucket.tfstate.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}</code></pre>
+<p>Kun bucket on luotu, siirry varsinaiseen infrastruktuuriprojektiin, määritä sen S3-backend ja suorita <code>terraform init -migrate-state</code>. Säilytä bootstrap-projektin state turvallisesti; se hallitsee backend-bucketia itseään.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="iam">
+<h2 class="module-title">3. IAM (Identity and Access Management)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<p>IAM-käyttäjät, roolit, ryhmät ja politiikat ovat <strong>ilmaisia</strong>. Maksu tulee vain palveluista, joita roolit käyttävät.</p>
+</div>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> IAM määrittää, kuka tai mikä saa tehdä mitä AWS:ssä. <em>Policy</em> eli käyttöoikeuspolitiikka määrittelee sallitut ja kielletyt toiminnot. <em>Role</em> eli rooli on identiteetti, jonka palvelu tai käyttäjä voi ottaa käyttöön väliaikaisia tunnuksia vastaan. <em>Trust policy</em> määrittelee, kuka saa ottaa roolin; tavallinen permissions policy määrittelee, mitä roolin haltija saa tehdä.</p>
+<p><span class="label">Liittyy muihin:</span> kaikki AWS-palvelut. ECS:n suoritusrooli hakee imaget ja salaisuudet sekä kirjoittaa lokit, sovelluksen task role antaa sovelluskoodille sen tarvitsemat AWS-oikeudet ja GitHub Actions ottaa käyttöön rajatun deploy-roolin OIDC:n avulla.</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Vähimmän oikeuden periaate:</span> jokainen palvelu saa vain ne oikeudet, joita se tarvitsee. Jos sovellus vuotaa, vahinko rajoittuu.</li>
+  <li><span class="label">Roolit palveluille:</span> ECS-tehtävä ei tarvitse käyttäjätunnusta. Se ottaa roolin ja saa väliaikaiset tunnukset.</li>
+  <li><span class="label">Ei pitkäaikaisia avaimia:</span> roolit ja OIDC poistavat tarpeen tallentaa AWS-avaimia CI-palveluun.</li>
+</ul>
+
+<h3>Esimerkki: palveluroolin luominen</h3>
+<pre><code class="language-hcl">data "aws_iam_policy_document" "ecs_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "ecs_execution" {
+  name               = "demo-ecs-execution"
+  assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
+}
+
+# AWS:n valmis politiikka: kuvien veto ECR:stä ja lokien kirjoitus
+resource "aws_iam_role_policy_attachment" "ecs_execution" {
+  role       = aws_iam_role.ecs_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}</code></pre>
+
+<div class="warn">
+<p>Vältä <code>"Action": "*"</code> ja <code>"Resource": "*"</code> -yhdistelmää. Se on käytännössä admin-oikeus, ja se on yleisin syy vuotoihin.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="vpc">
+<h2 class="module-title">4. VPC ja verkko</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Komponentti</th><th>Hinta</th></tr>
+  <tr><td>VPC, aliverkot, reititystaulut, IGW, Security Groupit</td><td>Ilmaisia</td></tr>
+  <tr><td>NAT Gateway</td><td>0,045 $/h (≈ 32,85 $/kk) + 0,045 $/GB, per AZ</td></tr>
+  <tr><td>Julkinen IPv4</td><td>0,005 $/h (≈ 3,65 $/kk) per osoite</td></tr>
+</table>
+<p>NAT on yleisin piilokulu. Yhden NAT:in pitäminen päällä kuukauden ajan maksaa enemmän kuin koko kurssiesimerkin muu infra.</p>
+</div>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> VPC (Virtual Private Cloud) on AWS-tilisi loogisesti eristetty IP-verkko. Sen sisällä on aliverkkoja (<em>subnet</em>), reititystauluja, Internet Gateway (IGW) ja tarvittaessa NAT Gateway. Security Group on tilallinen palomuuri, joka säätelee resurssien verkkoliikennettä.</p>
+<p><span class="label">Liittyy muihin:</span> lähes kaikki verkkoa käyttävät palvelut: RDS, ECS, ALB, EC2 ja VPC:hen liitetty Lambda.</p>
+<div class="definition"><strong>Julkinen vs. yksityinen aliverkko:</strong> julkisella aliverkolla on reitti Internet Gatewaylle. Yksityisellä aliverkolla ei ole suoraa reittiä internetiin. NAT Gateway mahdollistaa yksityisestä aliverkosta lähtevän internetliikenteen, mutta ei avaa sinne suoria yhteyksiä internetistä. Security Group rajaa vielä erikseen, mitkä yhteydet sallitaan.</div>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Julkinen ja yksityinen eristys:</span> tavallisesti ALB on julkisessa aliverkossa ja tietokanta sekä sovelluskontit yksityisissä aliverkoissa. Kurssin myöhempi ECS-esimerkki käyttää oppimisen ja kustannusten havainnollistamiseksi julkista aliverkkoa sovellustehtäville; tuotannossa tehtävät siirretään yleensä yksityisiin aliverkkoihin.</li>
+  <li><span class="label">Usean AZ:n redundanssi:</span> kaksi aliverkkoa eri AZ:issa, jotta yksi datakeskuksen vika ei kaada palvelua.</li>
+  <li><span class="label">Security Groupit:</span> sallitaan vain tarvittava liikenne, esim. ALB → sovellus porttiin 8000, sovellus → tietokanta porttiin 5432.</li>
+</ul>
+
+<h3>Esimerkki: VPC, aliverkot ja reititys</h3>
+<pre><code class="language-hcl">resource "aws_vpc" "main" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+  tags                 = { Name = "demo-vpc" }
+}
+
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
+resource "aws_subnet" "public" {
+  count                   = 2
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = cidrsubnet(aws_vpc.main.cidr_block, 8, count.index)
+  availability_zone       = data.aws_availability_zones.available.names[count.index]
+  map_public_ip_on_launch = true
+  tags                    = { Name = "public-${count.index}" }
+}
+
+resource "aws_subnet" "private" {
+  count             = 2
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = cidrsubnet(aws_vpc.main.cidr_block, 8, count.index + 10)
+  availability_zone = data.aws_availability_zones.available.names[count.index]
+  tags              = { Name = "private-${count.index}" }
+}
+
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main.id
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+}
+
+resource "aws_route_table_association" "public" {
+  count          = 2
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public.id
+}
+
+# Yksityisille aliverkoille oma reititystaulu; tässä ei ole internet-reittiä.
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+}
+
+resource "aws_route_table_association" "private" {
+  count          = 2
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private.id
+}
+
+# Security group ALB:lle: sallii HTTP ja HTTPS internetistä
+resource "aws_security_group" "alb" {
+  name   = "demo-alb"
+  vpc_id = aws_vpc.main.id
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Sovellus hyväksyy liikennettä vain ALB:ltä
+resource "aws_security_group" "app" {
+  name   = "demo-app"
+  vpc_id = aws_vpc.main.id
+  ingress {
+    from_port       = 8000
+    to_port         = 8000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}</code></pre>
+
+<div class="tip">
+<p><strong>Kustannus- ja turvallisuushuomio:</strong> Yksityisestä aliverkosta ulospäin lähtevä internetliikenne tarvitsee NAT Gatewayn tai muun soveltuvan verkkoratkaisun. AWS-palveluihin, kuten ECR:ään, S3:een ja CloudWatchiin, voidaan käyttää myös VPC endpoint -päätepisteitä. Ne eivät kuitenkaan ole automaattisesti NAT:ia halvempia — vertaile käyttöä ja hintoja. Kurssin ECS-esimerkki käyttää kustannusten havainnollistamiseksi julkista aliverkkoa ja julkista IP:tä, mutta rajaa sisääntulevan liikenteen Security Groupilla. Tuotantoympäristössä sovellustehtävät sijoitetaan yleensä yksityisiin aliverkkoihin.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="ecr">
+<h2 class="module-title">5. ECR (Elastic Container Registry)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<p>Tallennus noin 0,10 $ / GB / kk. Pieni Django- tai FastAPI-image on noin 100–300 MB, joten kustannus on muutama sentti kuukaudessa. Elinkaarisääntö pitää vanhat imaget pois. Siirrot samaan regioniin ECS:ään eivät aiheuta siirtomaksua.</p>
+</div>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> AWS:n yksityinen konttirekisteri. Tallennat siihen rakennetun Docker-imagen, jonka ECS, Lambda tai EKS voi hakea ajoa varten. Rekisteri ei aja sovellusta — se säilyttää versioidut imaget.</p>
+<p><span class="label">Liittyy muihin:</span> Docker (imagen rakentaminen), ECS/Lambda/EKS (imagen suorittaminen), GitHub Actions (julkaisu) ja IAM (pääsy rekisteriin).</p>
+<div class="definition"><strong>Image ja tag:</strong> image on sovelluksesta ja sen riippuvuuksista rakennettu paketti. Tag, kuten Git-commitin tunniste, kertoo mistä koodiversiosta image on rakennettu. Muuttumaton tagi auttaa varmistamaan, että tuotantoon julkaistu versio voidaan tunnistaa jälkikäteen.</div>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Imagen versiointi:</span> jokainen build saa tagin (esim. git-commit-hash), jolloin tiedät tarkalleen mikä koodi on tuotannossa.</li>
+  <li><span class="label">Turvallisuus:</span> automaattinen haavoittuvuusskannaus (<code>scan_on_push</code>) kertoo riippuvuuksien ongelmista.</li>
+  <li><span class="label">Lähellä kuormaa:</span> saman alueen sisällä imagen veto on nopeaa eikä vie internet-kaistaa.</li>
+</ul>
+
+<h3>Esimerkki</h3>
+<pre><code class="language-hcl">resource "aws_ecr_repository" "app" {
+  name                 = "devops-demo"
+  image_tag_mutability = "IMMUTABLE"   # sama tagi ei voi ylikirjoittua
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+# Elinkaarisääntö: pidetään vain 10 viimeisintä imagea, jotta tila ei kasva
+resource "aws_ecr_lifecycle_policy" "app" {
+  repository = aws_ecr_repository.app.name
+  policy = jsonencode({
+    rules = [{
+      rulePriority = 1
+      description  = "Pidä 10 viimeisintä"
+      selection = {
+        tagStatus   = "any"
+        countType   = "imageCountMoreThan"
+        countNumber = 10
+      }
+      action = { type = "expire" }
+    }]
+  })
+}</code></pre>
+
+<div class="tip">
+<p>Docker-kuvan rakentaminen ja työntäminen: <code>aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin &lt;tili&gt;.dkr.ecr.eu-north-1.amazonaws.com</code>, sitten <code>docker build -t devops-demo .</code> ja <code>docker push</code>.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="secrets">
+<h2 class="module-title">6. Secrets Manager ja SSM Parameter Store</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Palvelu</th><th>Hinta</th><th>Ilmainen taso</th></tr>
+  <tr><td>Secrets Manager</td><td>0,40 $/salaisuus/kk + 0,05 $ / 10 000 API-kutsua</td><td>Ei aina-ilmaista tasoa</td></tr>
+  <tr><td>SSM Parameter Store (Standard)</td><td>Parametri ilmainen, kutsut ilmaisia rajoissa</td><td>Kyllä, Standard-tason parametrit</td></tr>
+  <tr><td>KMS (asiakkaan oma avain)</td><td>1 $/avain/kk</td><td>Ei</td></tr>
+</table>
+<p>Yksi RDS-salasana Secrets Managerissa maksaa 0,40 $/kk. Jos käytät vain yhtä salaisuutta, kustannus on pieni.</p>
+</div>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Secrets Manager tallentaa salaisuuksia, kuten salasanoja ja API-avaimia, salattuna. Se tukee myös salaisuuksien kierrätystä. SSM Parameter Store sopii kevyempään asetusten ja parametrien tallentamiseen; Standard-parametrit soveltuvat myös ei-salaisille asetuksille.</p>
+<p><span class="label">Liittyy muihin:</span> RDS (salasanan hallinta), ECS ja Lambda (salaisuuden lukeminen), IAM (lukuoikeudet) ja KMS (salausavaimet).</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Ei salaisuuksia lähdekoodiin tai Git-repositorioon:</span> ECS voi lukea salaisuuden käynnistyksen yhteydessä ja välittää sen kontin ympäristömuuttujana. Sovellus voi myös hakea salaisuuden itse ajon aikana.</li>
+  <li><span class="label">Oikea rooli:</span> ECS:n execution role tarvitsee oikeuden, kun ECS hakee salaisuuden käynnistyksessä. Jos sovelluskoodi hakee salaisuuden itse, oikeus annetaan task role -roolille.</li>
+  <li><span class="label">Kierrätys:</span> salaisuuden kierrätys ei automaattisesti muuta jo käynnissä olevan kontin ympäristömuuttujaa. Tehtävä täytyy käynnistää uudelleen tai sovelluksen tulee hakea uusi arvo ajon aikana.</li>
+  <li><span class="label">Audit:</span> CloudTrail kirjaa, kuka on lukenut salaisuuden.</li>
+</ul>
+
+<h3>Esimerkki: parametri ja salaisuus</h3>
+<pre><code class="language-hcl">resource "aws_ssm_parameter" "debug" {
+  name  = "/devops-demo/DJANGO_DEBUG"
+  type  = "String"
+  value = "0"
+}
+
+resource "aws_secretsmanager_secret" "api_key" {
+  name                    = "devops-demo/third-party-api-key"
+  recovery_window_in_days = 7
+}
+
+# Arvo asetetaan Terraformin ulkopuolella, jotta se ei päädy tilaan:
+# aws secretsmanager put-secret-value --secret-id devops-demo/third-party-api-key --secret-string "..."</code></pre>
+
+<div class="warn">
+<p>Terraform tallentaa resurssien arvot tila-tiedostoon. Jos kirjoitat salasanan suoraan <code>value</code>-kenttään, se päätyy tilaan. Käytä RDS:n <code>manage_master_user_password</code>-asetusta tai aseta arvo erikseen (kuten yllä).</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="rds">
+<h2 class="module-title">7. RDS (Relational Database Service) PostgreSQL</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Komponentti</th><th>Hinta</th></tr>
+  <tr><td>db.t4g.micro single-AZ (Tukholma)</td><td>≈ 0,016 $/h ≈ 12 $/kk</td></tr>
+  <tr><td>db.t4g.micro Multi-AZ</td><td>≈ 0,033 $/h ≈ 24 $/kk</td></tr>
+  <tr><td>db.t4g.medium single-AZ</td><td>≈ 47 $/kk (lähteen mukaan)</td></tr>
+  <tr><td>gp3-tallennus</td><td>noin 0,115 $/GB/kk, eli 20 GB ≈ 2,30 $</td></tr>
+  <tr><td>Varmuuskopiotallennus</td><td>Ilmainen, kunnes se ylittää tietokannan koon. Ylityksestä maksu.</td></tr>
+</table>
+<p><strong>Ilmainen taso:</strong> vanhalla 12 kk tilillä 750 h/kk db.t4g.micro-instanssille ja 20 GB tallennusta. Uudella Free plan -tilillä RDS ei ole käytettävissä.</p>
+<div class="tip"><p>Kurssin esimerkki maksaa noin 12 $/kk single-AZ-versiona. Multi-AZ on tuotannossa perusteltu, mutta kehityksessä se on turha kulu.</p></div>
+</div>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Hallittu relaatiotietokanta. AWS hoitaa asennuksen, varmuuskopiot, version päivitykset ja korkean saatavuuden. Sinä kirjoitat skeeman ja kyselyt.</p>
+<p><span class="label">Liittyy muihin:</span> VPC (yksityinen aliverkko), Security Groups, Secrets Manager, CloudWatch (mittarit), ECS/Lambda (asiakkaat). Geospatiaaliseen työhön: PostGIS on tuettu.</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Varmuuskopiot ja palautus:</span> automaattiset snapshotit ja pistekohtainen palautus (point-in-time recovery). Itse ylläpidettynä tämä on työlästä.</li>
+  <li><span class="label">Monivyöhykkeinen (Multi-AZ):</span> synkroninen varakopio toisessa AZ:ssa, automaattinen failover.</li>
+  <li><span class="label">Skaalaus:</span> instanssiluokan vaihto tai luku-replikat raskaalle lukukuormalle.</li>
+  <li><span class="label">Kehityksen Docker-vastine:</span> tuotannon kaltainen PostgreSQL ilman, että sitä tarvitsee ylläpitää itse.</li>
+</ul>
+
+<h3>Esimerkki</h3>
+<pre><code class="language-hcl">resource "aws_db_subnet_group" "db" {
+  name       = "demo-db"
+  subnet_ids = aws_subnet.private[*].id
+}
+
+resource "aws_security_group" "db" {
+  name   = "demo-db"
+  vpc_id = aws_vpc.main.id
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.app.id]   # vain sovellus pääsee
+  }
+}
+
+resource "aws_db_instance" "postgres" {
+  identifier              = "demo-postgres"
+  engine                  = "postgres"
+  engine_version          = "16"
+  instance_class          = "db.t4g.micro"
+  allocated_storage       = 20
+  max_allocated_storage   = 100          # automaattinen kasvu
+  db_name                 = "appdb"
+  username                = "appuser"
+  manage_master_user_password = true     # AWS luo salasanan Secrets Manageriin
+  db_subnet_group_name    = aws_db_subnet_group.db.name
+  vpc_security_group_ids  = [aws_security_group.db.id]
+  storage_encrypted       = true
+  publicly_accessible     = false
+  backup_retention_period = 7
+  multi_az                = false        # tuotannossa true
+  skip_final_snapshot     = true         # tuotannossa false
+  deletion_protection     = false        # tuotannossa true
+}</code></pre>
+
+<div class="tip">
+<p><strong>Django/FastAPI:</strong> sovelluksen <code>DATABASE_HOST</code> on RDS:n <code>address</code>-attribuutti (<code>aws_db_instance.postgres.address</code>), ja salasana välitetään Secrets Managerista. Paikallisessa Docker Composessa sama asetusrakenne toimii, vain host vaihtuu.</p>
+<p><strong>Tuotantohuomio:</strong> tässä esimerkissä RDS:n master-käyttäjää käytetään yksinkertaisuuden vuoksi sovelluksen tunnuksena. Tuotannossa kannattaa luoda erillinen, rajatuilla oikeuksilla toimiva tietokantakäyttäjä sovellukselle ja säilyttää master-tunnus vain hallintatoimia varten.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="ecs">
+<h2 class="module-title">8. ECS Fargate (Docker-kontit ilman palvelimia)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Tehtävän koko</th><th>Hinta / tunti</th><th>Hinta / kk</th></tr>
+  <tr><td>0,25 vCPU / 0,5 GB</td><td>0,0123 $</td><td>≈ 9 $</td></tr>
+  <tr><td>0,5 vCPU / 1 GB</td><td>0,0247 $</td><td>≈ 18 $</td></tr>
+  <tr><td>1 vCPU / 2 GB</td><td>0,0494 $</td><td>≈ 36 $</td></tr>
+  <tr><td>1 vCPU / 2 GB, Fargate Spot</td><td>≈ 0,015 $</td><td>≈ 11 $</td></tr>
+</table>
+<p>ECS-klusteri ja palvelu ovat ilmaisia, eikä niillä ole hallintamaksua. EKS maksaa 0,10 $/h klusterista, eli noin 73 $/kk. Fargate-tehtävät laskutetaan allokoidun vCPU:n ja muistin mukaan, ei käytön mukaan. Jos tehtävä on 1 vCPU mutta käyttää 15 % siitä, maksat silti täyden hinnan.</p>
+<div class="warn"><p>Kurssin esimerkissä jokainen tehtävä saa julkisen IP:n (<code>assign_public_ip = true</code>), joten kahden tehtävän lisäksi tulee 2 × 3,65 $/kk. Tuotannossa NAT vaihtaa tämän toiseen maksuun, joten laske molemmat.</p></div>
+</div>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> ECS (Elastic Container Service) hallitsee konttien ajamista. Fargate-tilassa et ylläpidä EC2-palvelimia: määrittelet tehtävän tarvitsemat CPU- ja muistiresurssit sekä halutun tehtävämäärän, ja AWS huolehtii ajoinfrastruktuurista.</p>
+<p><span class="label">Liittyy muihin:</span> ECR (imaget), ALB (sisääntuleva liikenne), CloudWatch (lokit), IAM (execution role ja task role), Secrets Manager, VPC ja RDS.</p>
+<div class="definition"><strong>Kolme ECS-käsitettä:</strong> <em>Task definition</em> kuvaa, mitä kontteja ja asetuksia tehtävä sisältää. <em>Task</em> on tämän määrittelyn perusteella käynnissä oleva instanssi. <em>Service</em> pitää yllä haluttua task-määrää ja käynnistää korvaavan tehtävän, jos jokin pysähtyy.</div>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Sovelluksen ajo konteissa:</span> sama Docker-image toimii kehityksessä ja tuotannossa, ja kontit voi ajaa useana kopiona.</li>
+  <li><span class="label">Automaattinen palautuminen:</span> ECS käynnistää kuolleen kontin uudelleen ja ylläpitää haluttua määrää (<code>desired_count</code>).</li>
+  <li><span class="label">Rolling deploy:</span> uusi versio käynnistyy vanhan rinnalle, ja liikenne siirtyy vasta terveenä. Virheen sattuessa vanha versio pysyy.</li>
+  <li><span class="label">Ei palvelinhallintaa:</span> ei käyttöjärjestelmäpäivityksiä, ei kapasiteettisuunnittelua.</li>
+</ul>
+
+<h3>Esimerkki: tehtävämääritys ja palvelu</h3>
+<pre><code class="language-hcl">resource "aws_cloudwatch_log_group" "app" {
+  name              = "/ecs/devops-demo"
+  retention_in_days = 14
+}
+
+# ECS agentti tarvitsee tämän oikeuden salaisuuden lukemiseen käynnistyksessä.
+resource "aws_iam_role_policy" "ecs_read_db_secret" {
+  name = "read-db-secret"
+  role = aws_iam_role.ecs_execution.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["secretsmanager:GetSecretValue"]
+      Resource = aws_db_instance.postgres.master_user_secret[0].secret_arn
+    }]
+  })
+}
+
+resource "aws_ecs_cluster" "main" {
+  name = "demo-cluster"
+}
+
+# Task role antaa sovelluskoodille AWS-oikeudet.
+# Lisää tähän vain ne oikeudet, joita sovellus oikeasti tarvitsee.
+resource "aws_iam_role" "ecs_task" {
+  name               = "demo-ecs-task"
+  assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
+}
+
+variable "image_tag" {
+  description = "ECR-imagen yksilöivä tagi, esimerkiksi Git-commitin SHA"
+  type        = string
+  default     = "dev"
+}
+
+resource "aws_ecs_task_definition" "app" {
+  family                   = "devops-demo"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = aws_iam_role.ecs_execution.arn
+  task_role_arn             = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([{
+    name         = "app"
+    image        = "${aws_ecr_repository.app.repository_url}:${var.image_tag}"
+    essential    = true
+    portMappings = [{ containerPort = 8000, protocol = "tcp" }]
+
+    environment = [
+      { name = "DATABASE_HOST", value = aws_db_instance.postgres.address },
+      { name = "DATABASE_NAME", value = "appdb" },
+      { name = "DJANGO_DEBUG",  value = "0" }
+    ]
+
+    # JSON-avain "password" salaisuuden sisällä
+    secrets = [{
+      name      = "DATABASE_PASSWORD"
+      valueFrom = "${aws_db_instance.postgres.master_user_secret[0].secret_arn}:password::"
+    }]
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.app.name
+        "awslogs-region"        = "eu-north-1"
+        "awslogs-stream-prefix" = "app"
+      }
+    }
+  }])
+}
+
+resource "aws_ecs_service" "app" {
+  name            = "devops-demo"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.app.arn
+  desired_count   = 2
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = aws_subnet.public[*].id
+    security_groups  = [aws_security_group.app.id]
+    assign_public_ip = true   # tarvitaan ECR:n vetoon ilman NAT:ia
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.app.arn
+    container_name   = "app"
+    container_port   = 8000
+  }
+
+  depends_on = [aws_lb_listener.http]
+
+  # CI/CD rekisteröi uudet task definition -versiot ja päivittää palvelun.
+  # Terraform hallitsee tässä palvelun muita asetuksia, ei julkaistua revisionia.
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
+}</code></pre>
+
+<div class="tip">
+<p><strong>Ennen ensimmäistä käyttöönottoa:</strong> Terraformin oletusmuuttuja <code>image_tag = "dev"</code> tarkoittaa, että kyseisen tagin täytyy olla jo olemassa ECR:ssä ennen kuin ECS voi käynnistää ensimmäiset tehtävät. Rakenna ja julkaise siis ensin alustava image tagilla <code>dev</code>, tai anna Terraformille <code>-var="image_tag=olemassa-oleva-tagi"</code>. Myöhemmät CI/CD-julkaisut käyttävät yksilöllisiä commit-tunnisteita.</p>
+<p><strong>Execution role ja task role eivät ole sama asia:</strong> execution role on ECS-agentin käytössä, kun se hakee imagen ECR:stä, kirjoittaa lokit CloudWatchiin tai noutaa task definitioniin määritellyn salaisuuden. Task role puolestaan välittää väliaikaiset AWS-tunnukset sovelluskoodille. Jos Django ei kutsu AWS-palveluita itse, task role voi jäädä ilman lisäoikeuksia.</p>
+<p><strong>Next.js:</strong> sama konttimalli toimii Next.js-sovellukselle. Vaihda portti 3000:een ja käytä <code>output: "standalone"</code>-asetusta, jolloin mukaan pakataan vain tuotantoajoon tarvittavat tiedostot. Täysin staattinen Next.js-sivusto voidaan julkaista S3:n ja CloudFrontin kautta; palvelinpuolen renderöintiä (SSR) tai dynaamisia reittejä käyttävä sovellus tarvitsee edelleen sovelluspalvelun, kuten ECS:n.</p>
+</div>
+
+<div class="warn">
+<p>Kurssiesimerkissä tehtävät ovat julkisissa aliverkoissa julkisilla IP-osoitteilla, mutta Security Group sallii sisääntulevan sovellusliikenteen vain ALB:ltä. Julkinen IP ei siis yksin avaa porttia internetiin, mutta tehtävän verkkoliittymä on silti julkisessa verkossa. Tuotannossa tehtävät sijoitetaan yleensä yksityisiin aliverkkoihin. Ulospäin tarvittava yhteys järjestetään NAT Gatewaylla tai tarkoitukseen sopivilla VPC endpoint -päätepisteillä.</p>
+</div>
+</section>
+
+
+<!-- ============================================================ -->
+<section id="eks">
+<h2 class="module-title">9. EKS (Elastic Kubernetes Service) — syventävä aihe</h2>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> EKS on AWS:n hallinnoima Kubernetes. AWS ylläpitää Kubernetesin control planea (API-palvelin, etcd, scheduler), ja sinä hallitset worker-solmuja tai Fargate-podeja sekä kaikkea, mikä ajetaan klusterissa. Kubernetes on ECS:ää laajempi ja monimutkaisempi alusta, mutta se on myös standardi, joka toimii samalla tavalla pilvestä toiseen.</p>
+<p><span class="label">Liittyy muihin:</span> ECR (imagen säilytys), ALB Ingress Controller tai AWS Load Balancer Controller (ALB:n luonti Ingressistä), EBS ja EFS (tallennus), IAM Roles for Service Accounts tai EKS Pod Identity (oikeudet podeille), Karpenter ja Cluster Autoscaler (solmujen skaalaus), CloudWatch Container Insights ja Prometheus/Grafana (havainnointi), Helm ja Argo CD (sovellusten asennus ja GitOps).</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Monipalveluinen järjestelmä:</span> kun palveluita on kymmeniä ja niiden välillä on monimutkaisia riippuvuuksia, Kubernetesin deklaratiivinen malli (haluttu tila YAML:ssä, klusteri pitää sen yllä) pitää kokonaisuuden hallittavana.</li>
+  <li><span class="label">Siirrettävyys:</span> Kubernetes-manifestit toimivat samoin EKS:ssä, GKE:ssa, AKS:ssa ja omalla palvelimella. Tämä on tärkeää, jos haluat välttää lukkiutumisen yhteen pilveen.</li>
+  <li><span class="label">Itseparantuminen ja rullaavat päivitykset:</span> Deployment korvaa kuolleet podit, ja readiness-probe estää liikenteen rikkinäisiin versioihin. Canary-julkaisut onnistuvat Argo Rollouts -työkalulla.</li>
+  <li><span class="label">Ekosysteemi:</span> Helm-kaaviot, Operaattorit ja valmiit monitorointipinot (esim. Prometheus) löytyvät suoraan, eikä niitä tarvitse kirjoittaa itse.</li>
+  <li><span class="label">Oppiminen:</span> Kubernetes-osaaminen on työmarkkinoilla yleisesti haettu taito. Jos käytät jo K3s:ää kotipalvelimella, käsitteet (Pod, Deployment, Service, Ingress, ConfigMap, Secret) siirtyvät EKS:ään suoraan.</li>
+</ul>
+
+<h3>Milloin EKS ei kannata</h3>
+<ul class="purpose-list">
+  <li><span class="label">Yksi tai kaksi palvelua:</span> ECS Fargate on yksinkertaisempi ja usein halvempi, koska klusterin ylläpito jää pois.</li>
+  <li><span class="label">Pieni tiimi ilman platform-osaamista:</span> EKS:n päivitykset (Kubernetes-versiot tulevat noin kolmen kuukauden välein ja vanhenevat), add-onit, verkkoasetukset ja IAM-yhdistäminen vaativat jatkuvaa huomiota.</li>
+  <li><span class="label">Serverless-kuormat:</span> Lambda tai Step Functions sopivat paremmin lyhyisiin ja tapahtumapohjaisiin tehtäviin.</li>
+</ul>
+
+<h3>Hinnoittelu ja ilmainen taso</h3>
+<div class="price">
+<table>
+  <tr><th>Komponentti</th><th>Hinta (suuntaa antava)</th></tr>
+  <tr><td>EKS control plane</td><td>0,10 $/h per klusteri ≈ 73 $/kk. Ei ilmaista tasoa.</td></tr>
+  <tr><td>Worker-solmut EC2:ssa</td><td>Normaali EC2-hinta solmun koon mukaan. Yksi t3.medium on noin 30 $/kk.</td></tr>
+  <tr><td>Fargate-podit</td><td>Samat hinnat kuin ECS Fargatessa, ks. aiempi osio</td></tr>
+  <tr><td>Load balancer, NAT, EBS, IP-osoitteet</td><td>Samat hinnat kuin muissa palveluissa, ja ne kertyvät helposti</td></tr>
+</table>
+<p>Pienin järkevä EKS-kokoonpano (kaksi solmua, yksi klusteri, ALB ja NAT) maksaa helposti 200–250 $/kk ennen sovelluskuormaa. Tämä on tärkein syy valita ECS, jos palveluita on vähän.</p>
+</div>
+
+<div class="tip">
+<p><strong>Oppimisvinkki:</strong> Ennen EKS:ää opettele K3s tai kind paikallisesti. Samat kubectl-komennot ja manifestit toimivat, joten opit käsitteet ilman pilvilaskua.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="alb">
+<h2 class="module-title">10. ALB (Application Load Balancer)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Komponentti</th><th>Hinta</th></tr>
+  <tr><td>ALB-perusmaksu</td><td>0,0225 $/h ≈ 16,43 $/kk</td></tr>
+  <tr><td>LCU (kuormayksikkö)</td><td>0,008 $ / LCU-h. Yksi LCU ≈ 5,84 $/kk jatkuvasti käytettynä.</td></tr>
+  <tr><td>Julkinen IPv4 ALB:lle</td><td>Voi lisätä noin 3,65 $/kk per AZ</td></tr>
+</table>
+<p>Pieni kurssisovellus tuottaa yleensä 1–2 LCU:ta, joten kokonaisuus on noin 22–28 $/kk. Vanhalla 12 kk tilillä ALB:lle oli ilmaisia tunteja, mutta uudella Free plan -tilillä ei.</p>
+</div>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> ALB on HTTP-tason kuormantasaaja. Se vastaanottaa käyttäjien yhteydet ja välittää pyynnöt terveiksi todetuille kohteille (<em>target group</em>). Se voi myös päättää TLS-yhteyden ja reitittää pyyntöjä esimerkiksi URL-polun perusteella.</p>
+<p><span class="label">Liittyy muihin:</span> ECS (kohdepalvelut), ACM (TLS-sertifikaatti), Route 53 (DNS), Security Groups ja CloudWatch.</p>
+<div class="definition"><strong>Esimerkki polkureitityksestä:</strong> yksi ALB voi ohjata polun <code>/api/*</code> Django/FastAPI-kohderyhmään ja muut pyynnöt Next.js-kohderyhmään. Jokaiselle sovelluspalvelulle määritellään tällöin oma target group ja sopiva health check.</div>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Terveyden tarkistus:</span> ALB poistaa kontit, jotka eivät vastaa <code>/health/</code>-polkuun, joten rikkinäinen versio ei saa liikennettä.</li>
+  <li><span class="label">Nollakatkoinen deploy:</span> uusi ECS-tehtävä rekisteröityy kohderyhmään vasta, kun se on terve.</li>
+  <li><span class="label">TLS-päätepiste:</span> sertifikaatti on ALB:llä, sovellus voi puhua HTTP:tä sisäverkossa.</li>
+  <li><span class="label">Polkureititys:</span> yksi domain, useita palveluita (monoliitti vs. API + frontend).</li>
+</ul>
+
+<h3>Esimerkki</h3>
+<pre><code class="language-hcl">resource "aws_lb" "app" {
+  name               = "demo-alb"
+  load_balancer_type = "application"
+  subnets            = aws_subnet.public[*].id
+  security_groups    = [aws_security_group.alb.id]
+}
+
+resource "aws_lb_target_group" "app" {
+  name        = "demo-tg"
+  port        = 8000
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.main.id
+  target_type = "ip"              # Fargate käyttää IP-osoitteita
+
+  health_check {
+    path                = "/health/"
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    interval            = 15
+  }
+}
+
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.app.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app.arn
+  }
+}</code></pre>
+
+<div class="tip">
+<p>Tuotannossa lisää HTTPS-kuuntelija (port 443) ACM-sertifikaatilla ja ohjaa HTTP → HTTPS. Sertifikaatti käsitellään seuraavassa Route 53 ja ACM -osiossa.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="logs">
+<h2 class="module-title">11. CloudWatch (lokit, mittarit, hälytykset)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Komponentti</th><th>Hinta</th><th>Ilmainen taso</th></tr>
+  <tr><td>Lokien sisäänluku</td><td>0,50 $/GB</td><td>5 GB/kk (aina ilmainen)</td></tr>
+  <tr><td>Lokien säilytys</td><td>0,03 $/GB/kk</td><td>Sama 5 GB:n raja</td></tr>
+  <tr><td>Standard-hälytys</td><td>0,10 $/kk</td><td>10 hälytystä aina ilmaisia</td></tr>
+  <tr><td>Oma mittari</td><td>0,30 $/kk ensimmäiset 10 000</td><td>Ei</td></tr>
+</table>
+<p>Aseta lokeille säilytysaika, kuten kurssin esimerkissä 14 päivää. Muuten lokit kertyvät ja maksavat.</p>
+</div>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Havainnointipalvelu. Kerää lokit (Logs), mittarit (Metrics), hälytykset (Alarms) ja hallintapaneelit (Dashboards).</p>
+<p><span class="label">Liittyy muihin:</span> lähes kaikki AWS-palvelut tuottavat mittareita. ECS, Lambda, RDS, ALB.</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Vianetsintä:</span> sovelluksen <code>stdout</code>-loki näkyy ilman SSH-yhteyttä palvelimelle.</li>
+  <li><span class="label">Hälytykset:</span> esim. ALB:n 5xx-virheet tai RDS:n CPU yli 80 %. Hälytys voi lähettää SNS:n kautta sähköpostin tai Slackiin.</li>
+  <li><span class="label">Kustannushallinta:</span> lokeille voi asettaa säilytysajan (<code>retention_in_days</code>), muuten lokit kertyvät ja maksavat.</li>
+</ul>
+
+<h3>Esimerkki: hälytys sovelluskonttien 5xx-virheille</h3>
+<p>Tässä mittari laskee kohdepalvelimen (esimerkiksi Django-kontin) palauttamat 5xx-virheet. ALB:n itsensä tuottamat 5xx-virheet ovat eri mittari: <code>HTTPCode_ELB_5XX_Count</code>.</p>
+<pre><code class="language-hcl">resource "aws_sns_topic" "alerts" {
+  name = "devops-demo-alerts"
+}
+
+resource "aws_sns_topic_subscription" "email" {
+  topic_arn = aws_sns_topic.alerts.arn
+  protocol  = "email"
+  endpoint  = "you@example.fi" # vaihda omaan osoitteeseesi
+}
+
+resource "aws_cloudwatch_metric_alarm" "target_5xx" {
+  alarm_name          = "demo-target-5xx-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "HTTPCode_Target_5XX_Count"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 10
+  dimensions = {
+    LoadBalancer = aws_lb.app.arn_suffix
+  }
+  alarm_actions = [aws_sns_topic.alerts.arn]
+}</code></pre>
+<div class="tip"><p>Sähköpostitilaus täytyy vahvistaa AWS:n lähettämästä viestistä ennen kuin ilmoitukset alkavat saapua. Pelkkä SNS-topic ei vielä määritä vastaanottajaa.</p></div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s3">
+<h2 class="module-title">12. S3 (Simple Storage Service)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Komponentti</th><th>Hinta</th></tr>
+  <tr><td>S3 Standard tallennus (Tukholma)</td><td>0,023 $/GB/kk</td></tr>
+  <tr><td>Pyynnöt</td><td>Muutama sentti miljoonaa kohden</td></tr>
+  <tr><td>Siirto internetiin</td><td>Ensimmäiset 100 GB/kk ilmaisia, sen jälkeen noin 0,09 $/GB</td></tr>
+  <tr><td>Versiointi</td><td>Ylläpitää vanhoja versioita, joista maksetaan tallennus</td></tr>
+</table>
+<p>Vanhalla 12 kk tilillä 5 GB ilmaista tallennusta ja 20 000 GET-pyyntöä. Uudella Free plan -tilillä erillistä S3-ilmaisosaa ei ole. Käytännössä 1 GB media maksaa noin 0,02 $/kk.</p>
+</div>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> S3 on objektitallennuspalvelu. Tiedosto tallennetaan bucket-nimiseen säilöön objektina, jolla on avain (usein polun näköinen nimi). S3 sopii esimerkiksi kuville, dokumenteille, varmuuskopioille ja data lake -tiedostoille. Se ei ole tavallinen lohkolevy eikä tietokanta.</p>
+<p><span class="label">Liittyy muihin:</span> CloudFront (sisällön jakelu), Lambda (tiedostotapahtumat), Athena (SQL-kyselyt), Glue (datakatalogi), Terraform (state) ja ECS (tiedostojen luku/kirjoitus).</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Django-median ja staattisten tiedostojen tallennus:</span> tiedostot eivät katoa, kun kontti uusitaan. Kontit ovat väliaikaisia, S3 ei ole.</li>
+  <li><span class="label">Next.js-buildin staattiset assetit:</span> tarjotaan CloudFrontista.</li>
+  <li><span class="label">Data engineering:</span> raakadata-järvi (data lake), johon Airflow-DAGit kirjoittavat Parquet-tiedostoja.</li>
+  <li><span class="label">Varmuuskopiot:</span> ylimääräinen kopio tietokannan dumpeista, versioinnilla ja elinkaarisäännöillä.</li>
+</ul>
+
+<h3>Esimerkki: suojattu bucket</h3>
+<pre><code class="language-hcl">resource "aws_s3_bucket" "media" {
+  bucket = "toni-devops-demo-media-eu-north-1"
+}
+
+resource "aws_s3_bucket_public_access_block" "media" {
+  bucket                  = aws_s3_bucket.media.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_versioning" "media" {
+  bucket = aws_s3_bucket.media.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "media" {
+  bucket = aws_s3_bucket.media.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}</code></pre>
+
+<div class="warn">
+<p>S3-bucketit voivat paljastaa tietoja, jos niiden käyttöoikeudet määritellään huolimattomasti. Pidä <code>public_access_block</code> yleensä päällä. Julkiset staattiset tiedostot voidaan jakaa CloudFrontin kautta OAC-määrityksellä ilman julkista bucketia. Käyttäjäkohtaiset yksityiset tiedostot kannattaa jakaa esimerkiksi lyhytikäisillä allekirjoitetuilla URL-osoitteilla.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="cloudfront">
+<h2 class="module-title">13. CloudFront (CDN)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<p>CloudFront laskuttaa siirrosta ja pyynnöistä. Siirto internetiin on noin 0,085–0,09 $/GB (alueesta riippuen). CloudFrontin aina-ilmaisen tason suuruus vaihtelee ajan myötä, joten tarkista sen nykyinen määrä AWS:n Free Tier -sivulta ennen käyttöönottoa. Pieni staattinen sivusto jää yleensä muutaman dollarin kuukausikustannukseen.</p>
+</div>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> CloudFront on sisältöjakeluverkko (CDN). Se voi välimuistittaa sisältöä käyttäjän lähellä sijaitsevissa reunapalvelupisteissä ja vähentää alkuperäpalvelimelle tulevia pyyntöjä. ACM-sertifikaatin hallinta ei maksa erikseen, mutta CloudFrontin liikenteestä ja pyynnöistä voidaan veloittaa.</p>
+<p><span class="label">Liittyy muihin:</span> S3 (staattisen sisällön alkuperä), ALB (dynaamisen sovelluksen alkuperä), ACM (CloudFrontin sertifikaatti alueella <code>us-east-1</code>), Route 53 ja WAF.</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Nopeus:</span> Next.js-staattiset sivut ja kuvat tarjoillaan lähimmästä pisteestä Suomessa.</li>
+  <li><span class="label">Alkuperän suojaus:</span> Origin Access Control (OAC) sallii CloudFrontin lukea S3:a, mutta ei julkista pääsyä bucketiin.</li>
+  <li><span class="label">Kuorman vähennys:</span> välimuistissa olevat pyynnöt eivät osu sovellukseen tai tietokantaan.</li>
+</ul>
+
+<h3>Esimerkki</h3>
+<pre><code class="language-hcl">resource "aws_cloudfront_origin_access_control" "media" {
+  name                              = "media-oac"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
+resource "aws_cloudfront_distribution" "media" {
+  enabled             = true
+  default_root_object = "index.html"
+
+  origin {
+    domain_name              = aws_s3_bucket.media.bucket_regional_domain_name
+    origin_id                = "s3-media"
+    origin_access_control_id = aws_cloudfront_origin_access_control.media.id
+  }
+
+  default_cache_behavior {
+    target_origin_id       = "s3-media"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = true
+    forwarded_values {
+      query_string = false
+      cookies { forward = "none" }
+    }
+  }
+
+  restrictions {
+    geo_restriction { restriction_type = "none" }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+}
+
+# Bucket-politiikka: vain tämä CloudFront-jakelu saa lukea
+data "aws_iam_policy_document" "media_cf" {
+  statement {
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.media.arn}/*"]
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceArn"
+      values   = [aws_cloudfront_distribution.media.arn]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "media" {
+  bucket = aws_s3_bucket.media.id
+  policy = data.aws_iam_policy_document.media_cf.json
+}</code></pre>
+
+<div class="tip">
+<p><strong>Next.js:n kaksi eri mallia:</strong> täysin staattinen sivusto (<code>output: "export"</code>) voidaan julkaista S3:ssa ja jakaa CloudFrontilla. Palvelinpuolen renderöintiä, Server Actions -toimintoja tai dynaamisia API-reittejä käyttävä Next.js-sovellus tarvitsee edelleen palvelimen, esimerkiksi ECS-kontin. Tällöin CloudFrontiin voidaan määritellä S3-alkuperän lisäksi ALB-alkuperä dynaamista liikennettä varten.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="dns">
+<h2 class="module-title">14. Route 53 ja ACM (DNS ja TLS)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Palvelu</th><th>Hinta</th></tr>
+  <tr><td>Route 53 hosted zone</td><td>0,50 $/kk (ensimmäiset 25 zonea)</td></tr>
+  <tr><td>Route 53 kyselyt</td><td>0,40 $ / miljoona (ensimmäiset 1 mrd)</td></tr>
+  <tr><td>ACM julkiset sertifikaatit</td><td>Ilmaisia, myös automaattinen uusinta</td></tr>
+</table>
+<p>Domainin ostohinta tulee rekisterinpitäjältä, ei hosted zonen hinnasta. ALB:tä varten pyydetty ACM-sertifikaatti luodaan samassa regionissa kuin ALB (esimerkiksi <code>eu-north-1</code>). CloudFrontin käyttäjille tarjoiltava ACM-sertifikaatti täytyy luoda regioniin <code>us-east-1</code>. Sertifikaatti on aluekohtainen resurssi.</p>
+</div>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Route 53 on DNS-palvelu (nimipalvelin). ACM (AWS Certificate Manager) myöntää ilmaiset TLS-sertifikaatit, jotka uusiutuvat automaattisesti.</p>
+<p><span class="label">Liittyy muihin:</span> ALB, CloudFront, API Gateway, S3-staattiset sivut.</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Oma domain sovellukselle:</span> <code>app.esimerkki.fi</code> osoittaa ALB:lle tai CloudFrontiin.</li>
+  <li><span class="label">HTTPS:</span> selain ei varoita, ja hakukoneet suosivat salattua liikennettä.</li>
+  <li><span class="label">Vaihdettava:</span> DNS-muutos on yksi Terraform-muutos, ei manuaalista säätöä.</li>
+</ul>
+
+<h3>Esimerkki</h3>
+<pre><code class="language-hcl">data "aws_route53_zone" "main" {
+  name = "esimerkki.fi"
+}
+
+resource "aws_acm_certificate" "app" {
+  domain_name       = "app.esimerkki.fi"
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Validointitietue: ACM pyytää todistuksen DNS-tasolla
+resource "aws_route53_record" "cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.app.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+  zone_id         = data.aws_route53_zone.main.zone_id
+  name            = each.value.name
+  type            = each.value.type
+  records         = [each.value.record]
+  ttl             = 60
+  allow_overwrite = true
+}
+
+resource "aws_acm_certificate_validation" "app" {
+  certificate_arn         = aws_acm_certificate.app.arn
+  validation_record_fqdns = [for r in aws_route53_record.cert_validation : r.fqdn]
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.app.arn
+  port              = 443
+  protocol          = "HTTPS"
+  certificate_arn   = aws_acm_certificate_validation.app.certificate_arn
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app.arn
+  }
+}
+
+resource "aws_route53_record" "app" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "app.esimerkki.fi"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.app.dns_name
+    zone_id                = aws_lb.app.zone_id
+    evaluate_target_health = true
+  }
+}</code></pre>
+
+<div class="tip">
+<p>Muista ohjata HTTP-kuuntelija (portti 80) uudelleen HTTPS:lle tuotannossa. Kurssin aiempi ALB-esimerkki näyttää ensin HTTP:n, jotta kuuntelijan perusrakenne on helppo ymmärtää. HTTPS-kuuntelija käyttää ALB:n kanssa samassa regionissa olevaa ACM-sertifikaattia. CloudFrontia varten tarvitaan erillinen sertifikaatti <code>us-east-1</code>-alueella.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="ec2">
+<h2 class="module-title">15. EC2 (virtuaalipalvelin, VPS-vaihtoehto)</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Komponentti</th><th>Arvio / kk</th></tr>
+  <tr><td>t3.micro tai t4g.micro (24/7)</td><td>noin 9 $ (arvio, tarkista Pricing Calculatorilla)</td></tr>
+  <tr><td>EBS gp3 8 GB</td><td>noin 1 $</td></tr>
+  <tr><td>Julkinen IPv4</td><td>3,65 $</td></tr>
+  <tr><td>Yhteensä</td><td><strong>noin 13–15 $</strong></td></tr>
+</table>
+<p>Systems Manager Session Manager on ilmainen. Vanhalla 12 kk tilillä 750 h/kk t2/t3.micro-instanssille. Uudella Free plan -tilillä EC2 ei välttämättä ole käytettävissä. Pysäytetty instanssi ei maksa tuntihintaa, mutta EBS-levy ja julkinen IP maksavat edelleen.</p>
+</div>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Virtuaalipalvelin. Saat täyden hallinnan käyttöjärjestelmään, mutta myös vastuun päivityksistä, palomuurista ja skaalauksesta. EC2 on AWS:n vastine VPS:lle.</p>
+<p><span class="label">Liittyy muihin:</span> EBS (levy), Elastic IP, Auto Scaling, Systems Manager (ilman SSH:ta), VPC, IAM-instanssiprofiili.</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Kun tarvitset hallintaa:</span> omat ajurit, pitkäkestoiset prosessit, GPU-laskenta (esim. paikallisen mallin ajo pilvessä).</li>
+  <li><span class="label">Kun Fargate ei riitä:</span> ohjelmat, jotka vaativat käyttöjärjestelmätason pääsyn.</li>
+  <li><span class="label">Oppimisen kannalta:</span> ymmärrät, mitä ECS ja Fargate abstrahoivat pois.</li>
+</ul>
+
+<h3>Esimerkki: EC2 Docker-isännäksi</h3>
+<pre><code class="language-hcl">data "aws_ami" "al2023" {
+  most_recent = true
+  owners      = ["amazon"]
+  filter {
+    name   = "name"
+    values = ["al2023-ami-2023*-x86_64"]
+  }
+}
+
+resource "aws_instance" "vps" {
+  ami                         = data.aws_ami.al2023.id
+  instance_type               = "t3.micro"
+  subnet_id                   = aws_subnet.public[0].id
+  vpc_security_group_ids      = [aws_security_group.app.id]
+  associate_public_ip_address = true
+
+  # Ajetaan kerran ensimmäisellä käynnistyksellä
+  user_data = <<-EOF
+    #!/bin/bash
+    dnf install -y docker
+    systemctl enable --now docker
+    usermod -aG docker ec2-user
+  EOF
+
+  tags = { Name = "devops-demo-vps" }
+}</code></pre>
+
+<div class="tip">
+<p><strong>Ei SSH-avaimia:</strong> AWS Systems Manager Session Managerilla voit avata hallintayhteyden ilman portin 22 avaamista. Se edellyttää, että instanssille liitetään IAM-instanssiprofiili, jossa on <code>AmazonSSMManagedInstanceCore</code>-politiikka, sekä toimiva yhteys Systems Manager -palveluun. Tämä lyhyt EC2-koodiesimerkki ei vielä luo instanssiprofiilia, joten Session Manager ei toimi pelkällä tällä koodilla.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="lambda">
+<h2 class="module-title">16. Lambda ja EventBridge</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<table>
+  <tr><th>Komponentti</th><th>Hinta</th><th>Aina ilmainen</th></tr>
+  <tr><td>Lambda pyynnöt</td><td>≈ 0,20 $ / miljoona yli rajan</td><td>1 miljoona pyyntöä/kk</td></tr>
+  <tr><td>Lambda kesto</td><td>≈ 0,0000167 $ / GB-s yli rajan</td><td>400 000 GB-s/kk</td></tr>
+  <tr><td>EventBridge ajastettu sääntö</td><td>Yleensä ilmainen oletusväylällä</td><td>Kyllä</td></tr>
+</table>
+<p>Päivittäinen ETL, joka ajaa muutaman minuutin, jää aina-ilmaisen tason sisään. Lambda on siksi yksi halvimmista tavoista ajaa ajastettuja data-tehtäviä.</p>
+</div>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> Lambda on palvelimeton laskentapalvelu, joka suorittaa koodia tapahtuman tai kutsun perusteella. Laskutus perustuu muun muassa pyyntöihin ja suoritusaikaan. EventBridge välittää tapahtumia ja voi käynnistää Lambdan esimerkiksi aikataulun tai toisen AWS-palvelun tapahtuman perusteella.</p>
+<p><span class="label">Liittyy muihin:</span> S3 (tiedostotapahtumat), API Gateway (HTTP-kutsut), SQS (jonot), RDS (tietokanta), CloudWatch (lokit ja mittarit) sekä ECR (kontti-imagena).</p>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Ajastetut tehtävät:</span> päivittäinen ETL, joka hakee datan API:sta ja kirjoittaa sen PostgreSQL:ään tai S3:een.</li>
+  <li><span class="label">Tapahtumapohjainen käsittely:</span> tiedosto ilmestyy S3:een, Lambda käsittelee sen heti.</li>
+  <li><span class="label">Kun kuorma on epätasainen:</span> ei kiinteää kapasiteettia, joka seisoo tyhjillään yöllä.</li>
+</ul>
+
+<h3>Esimerkki: ajastettu ETL-funktio konttina</h3>
+<pre><code class="language-hcl">data "aws_iam_policy_document" "lambda_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "lambda" {
+  name               = "daily-etl-role"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_logs" {
+  role       = aws_iam_role.lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+variable "etl_image_tag" {
+  description = "ETL-kontin yksilöllinen ECR-tag, esimerkiksi commit-SHA"
+  type        = string
+}
+
+resource "aws_lambda_function" "etl" {
+  function_name = "daily-etl"
+  role          = aws_iam_role.lambda.arn
+  package_type  = "Image"
+  # Tagin täytyy olla julkaistu ECR:ään ennen Lambdan luontia tai päivitystä.
+  image_uri     = "${aws_ecr_repository.app.repository_url}:${var.etl_image_tag}"
+  timeout       = 300
+  memory_size   = 512
+}
+
+resource "aws_cloudwatch_event_rule" "daily" {
+  name                = "daily-etl-schedule"
+  schedule_expression = "cron(0 3 * * ? *)"   # joka päivä klo 03:00 UTC
+}
+
+resource "aws_cloudwatch_event_target" "daily_etl" {
+  rule = aws_cloudwatch_event_rule.daily.name
+  arn  = aws_lambda_function.etl.arn
+}
+
+resource "aws_lambda_permission" "allow_events" {
+  statement_id  = "AllowEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.etl.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.daily.arn
+}</code></pre>
+
+<div class="tip">
+<p><strong>Data engineering -vinkki:</strong> Airflow ajaa DAG:it omalla infrastruktuurillaan, mutta yksinkertaiset ajastetut tehtävät voi toteuttaa Lambdalla. Lambdan enimmäissuoritusaika on 15 minuuttia, joten pitkissä tai raskaissa eräajoissa ECS:n ajastettu Fargate-task voi olla sopivampi.</p>
+<p><strong>Verkkohuomio:</strong> tämä Lambda-esimerkki näyttää ajastuksen ja roolin, ei tietokantayhteyttä. Jos Lambda yhdistetään yksityisessä aliverkossa olevaan RDS:ään, funktiolle pitää määrittää VPC-aliverkot ja Security Group. Ulkoiseen internet-API:in pääsy yksityisestä aliverkosta vaatii lisäksi NAT-ratkaisun tai muun sopivan verkkosuunnittelun.</p>
+<p>Esimerkissä käytetään EventBridge scheduled rule -sääntöä. Uusissa ajastuksissa kannattaa tutustua myös erilliseen EventBridge Scheduler -palveluun. Cron-esimerkin ajat ovat UTC-aikaa.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="cicd">
+<h2 class="module-title">17. CI/CD: GitHub Actions ja OIDC</h2>
+<div class="price"><h3>Hinnoittelu ja ilmainen taso</h3>
+<p>OIDC-palveluntarjoaja ja IAM-rooli ovat ilmaisia. Kustannus syntyy vain siitä, mitä putki käyttää: ECR-tallennus, ECS-tehtävät, Fargate-ajoaika ja mahdollinen Build-kesto. GitHub Actionsilla on oma ilmaisten minuuttien kiintiö, joka riippuu repon tyypistä ja GitHub-tilistäsi. Tarkista se GitHubin laskutussivulta.</p>
+</div>
+
+<div class="card">
+<p><span class="label">Mitä se on:</span> CI/CD-putki automatisoi muutosten tarkistamisen, testaamisen, paketoinnin ja julkaisemisen. GitHub Actions voi pyytää AWS:ltä lyhytikäiset tunnukset OIDC:n avulla, jolloin pitkäaikaisia AWS-avaimia ei tallenneta GitHubin salaisuuksiin.</p>
+<p><span class="label">Liittyy muihin:</span> ECR (kuvien tallennus), ECS (uuden task definition -version julkaisu), IAM (OIDC-luottamus ja oikeudet) ja Terraform (infrastruktuurimuutokset).</p>
+<div class="definition"><strong>Julkaisun kolme vaihetta:</strong> 1) rakenna Docker-image, 2) julkaise image yksilöllisellä tagilla ECR:ään, 3) rekisteröi uusi ECS task definition -versio, joka viittaa juuri tähän imageen, ja päivitä ECS service käyttämään uutta versiota.</div>
+</div>
+
+<h3>Mihin sitä käytetään ja miksi</h3>
+<ul class="purpose-list">
+  <li><span class="label">Toistettava julkaisu:</span> jokainen merge mainiin tuottaa saman prosessin ja saman tuloksen.</li>
+  <li><span class="label">Ei salaisuuksia repossa:</span> OIDC antaa putkelle väliaikaisen roolin, joka vanhenee automaattisesti.</li>
+  <li><span class="label">Turvallisuus:</span> rooli rajataan vain tiettyyn repositorioon ja haaraan.</li>
+</ul>
+
+<h3>Esimerkki: OIDC-luottamus ja rooli</h3>
+<pre><code class="language-hcl">resource "aws_iam_openid_connect_provider" "github" {
+  url             = "https://token.actions.githubusercontent.com"
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
+}
+
+data "aws_iam_policy_document" "gha_assume" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.github.arn]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+    # Vain tämä repo ja main-haara saavat ottaa roolin
+    condition {
+      test     = "StringLike"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = ["repo:TONI_GITHUB_KÄYTTÄJÄ/devops-portfolio:ref:refs/heads/main"]
+    }
+  }
+}
+
+resource "aws_iam_role" "github_deploy" {
+  name               = "github-actions-deploy"
+  assume_role_policy = data.aws_iam_policy_document.gha_assume.json
+}</code></pre>
+
+<h3>Workflow-tiedosto GitHubissa</h3>
+<pre><code class="language-yaml">name: deploy
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write    # tarvitaan OIDC-tokeniin
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/github-actions-deploy
+          aws-region: eu-north-1
+
+      - name: Kirjaudu ECR:ään
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Rakenna ja työnnä yksilöllinen image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          TAG: ${{ github.sha }}-${{ github.run_attempt }}
+        run: |
+          docker build -t $REGISTRY/devops-demo:$TAG .
+          docker push $REGISTRY/devops-demo:$TAG
+
+      - name: Rekisteröi uusi task definition ja päivitä palvelu
+        env:
+          TASK_FAMILY: devops-demo
+          CONTAINER_NAME: app
+          IMAGE_URI: ${{ steps.ecr.outputs.registry }}/devops-demo:${{ github.sha }}-${{ github.run_attempt }}
+        run: |
+          TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition "$TASK_FAMILY" \
+            --query taskDefinition)
+
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq \
+            --arg IMAGE "$IMAGE_URI" \
+            --arg NAME "$CONTAINER_NAME" '
+              .containerDefinitions |= map(
+                if .name == $NAME then .image = $IMAGE else . end
+              )
+              | del(.taskDefinitionArn, .revision, .status,
+                    .requiresAttributes, .compatibilities,
+                    .registeredAt, .registeredBy, .deregisteredAt)
+            ')
+
+          NEW_TASK_ARN=$(aws ecs register-task-definition \
+            --cli-input-json "$NEW_TASK_DEF" \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          aws ecs update-service \
+            --cluster demo-cluster \
+            --service devops-demo \
+            --task-definition "$NEW_TASK_ARN"</code></pre>
+
+<div class="tip">
+<p>Tässä repositorio käyttää ECR:n <code>IMMUTABLE</code>-asetusta ja GitHub-commitin SHA:ta sekä ajon yritysnumeroa image-tagina. Yritysnumero tekee myös saman workflow-ajon uudelleenyrityksestä uuden tagin, koska muuttumatonta ECR-tagia ei voi ylikirjoittaa. Julkaisu rekisteröi uuden ECS task definition -revisionin, joka viittaa uuteen imageen. Pelkkä <code>--force-new-deployment</code> ei päivitä task definitioniin kirjoitettua tagia.</p>
+<p><strong>Terraformin ja CI/CD:n vastuunjako:</strong> ECS-palvelun <code>ignore_changes = [task_definition]</code> estää Terraformia palauttamasta palvelua vanhaan task definition -versioon seuraavassa ajossa. Samalla se tarkoittaa, ettei Terraformin task definition -muutosta oteta automaattisesti käyttöön palvelussa. Sovi siis, että julkaisuputki vastaa task definition -revisionin rekisteröinnistä ja käyttöönotosta, ja testaa Terraform-muutosten sekä sovellusjulkaisujen yhteistoiminta.</p>
+<p>Työnkulku tarvitsee IAM-roolille ECR-kuvan julkaisuun ja ECS task definitionin rekisteröintiin sekä palvelun päivittämiseen riittävät oikeudet. Se tarvitsee myös rajatun <code>iam:PassRole</code>-oikeuden niihin ECS-tehtävän rooleihin, joita task definition käyttää. OIDC:n trust policy kertoo, kuka saa roolin ottaa; se ei yksin anna näitä käyttöoikeuksia.</p>
+</div>
+</section>
+
+
+<!-- ============================================================ -->
+<section id="eventdriven">
+<h2 class="module-title">18. Event-driven -palikat</h2>
+
+<div class="card">
+<p><span class="label">Periaate:</span> Event-driven-arkkitehtuurissa palvelut eivät kutsu toisiaan suoraan. Ne julkaisevat tapahtuman (esim. "tilaus luotu", "tiedosto ladattu") ja muut palvelut reagoivat siihen omassa tahdissaan. Tämä irrottaa palvelut toisistaan: tuottaja ei tiedä, kuka kuuntelee, ja kuluttaja voi olla hetkellisesti alhaalla ilman, että tuottaja kaatuu.</p>
+<p><span class="label">Tyypillinen ketju:</span></p>
+<pre><code>Tuottaja (API, S3, IoT, aikataulu)
+        ↓ tapahtuma
+EventBridge / SNS   (reititys ja monistus)
+        ↓
+SQS-jono            (puskuri, uudelleenyritykset)
+        ↓
+Lambda / ECS-työntekijä (käsittely)
+        ↓
+DynamoDB / RDS / S3 (tulos)
+        ↓ virheet
+Dead-letter-jono    (käsittelemättömät viestit talteen)</code></pre>
+</div>
+
+<h3>Amazon EventBridge</h3>
+<div class="card">
+<p><span class="label">Mitä se on:</span> Tapahtumaväylä, joka vastaanottaa JSON-tapahtumia, suodattaa ne sääntöjen perusteella ja toimittaa kohteisiin (Lambda, SQS, SNS, Step Functions, ECS-tehtävä ja yli 20 muuta kohdetyyppiä). Sisältää myös Scheduler-palvelun (cron-ajastukset) ja Pipes-palvelun (lähteestä kohteeseen suodatuksen ja muunnoksen kanssa, ilman koodia).</p>
+<p><span class="label">Liittyy muihin:</span> lähes kaikki AWS-palvelut julkaisevat tapahtumia EventBridgeen (EC2:n tilamuutokset, CodePipeline, S3, CloudTrail). Lisäksi omat sovellukset voivat julkaista omia tapahtumia "custom bus" -väylään.</p>
+<p><span class="label">Ratkaisee:</span> reititys ilman, että tuottaja tuntee kuluttajat. Esim. sama "tilaus luotu" -tapahtuma menee laskutukseen, varastoon ja sähköpostiin, ja uusi kuluttaja lisätään vain uudella säännöllä. Myös ajastetut tehtävät ja SaaS-tapahtumien (kuten kumppanijärjestelmän webhookit) vastaanotto.</p>
+<p><span class="label">Hinta (suuntaa antava):</span> AWS:n omat tapahtumat oletusväylällä ovat ilmaisia. Oma väylä maksaa noin 1 $ miljoonasta tapahtumasta. Scheduler sisältää ilmaisia ajoja kuukaudessa, sen jälkeen maksu per ajo.</p>
+</div>
+
+<h3>Amazon SNS (Simple Notification Service)</h3>
+<div class="card">
+<p><span class="label">Mitä se on:</span> Pub/sub-aihe (topic), johon julkaistaan viesti ja joka monistaa sen kaikille tilaajille: SQS-jonoille, Lambdalle, HTTP-päätepisteille, sähköpostille, SMS:lle ja mobiilipushille.</p>
+<p><span class="label">Liittyy muihin:</span> SQS (usein SNS → useita SQS-jonoja -yhdistelmä, "fan-out"), CloudWatch-hälytykset (ilmoitukset), Lambda, EventBridge (EventBridgen kohteena SNS on yleinen).</p>
+<p><span class="label">Ratkaisee:</span> yhden tapahtuman lähettäminen usealle kuluttajalle samanaikaisesti. Esim. kuvan lataus S3:een voi laukaista thumbnail-generoinnin ja virustarkistuksen samalla kertaa. Sekä ops-ilmoitukset: hälytys menee sähköpostiin, Slackiin ja tiimin pagerille.</p>
+<p><span class="label">Hinta (suuntaa antava):</span> noin miljoona julkaisua ilmaisia per kuukausi, sen jälkeen noin 0,50 $ per miljoona.</p>
+</div>
+
+<h3>Amazon SQS (Simple Queue Service)</h3>
+<div class="card">
+<p><span class="label">Mitä se on:</span> Viestijono, johon tuottaja kirjoittaa ja josta kuluttaja lukee viestejä omaan tahtiinsa. Viesti poistetaan jonosta vasta, kun kuluttaja kuittaa sen käsitellyksi. Standard-jono tarjoaa vähintään kerran -toimituksen, joten sama viesti voi tulla käsiteltäväksi uudelleen. FIFO-jono säilyttää viestiryhmän järjestyksen ja tukee lähetysten deduplikointia, mutta sovelluksen on silti varauduttava uudelleenyrityksiin ja tehtävä käsittelystä idempotenttia.</p>
+<p><span class="label">Liittyy muihin:</span> Lambda (event source mapping, joka lukee jonoa automaattisesti), SNS (fan-out), ECS-työntekijät (jonon pituuteen perustuva skaalaus), Dead-letter-jono, EventBridge Pipes.</p>
+<p><span class="label">Tärkeitä asetuksia:</span></p>
+<ul class="purpose-list">
+  <li><span class="label">Visibility timeout:</span> aika, jonka viesti on piilossa muilta käsittelyn ajan. Jos käsittely kestää pidempään kuin tämä, viesti ilmestyy takaisin jonoon ja käsitellään uudelleen.</li>
+  <li><span class="label">Dead-letter-jono (DLQ):</span> viestit, jotka epäonnistuvat esimerkiksi viidesti peräkkäin, siirretään erilliseen jonoon. Näin yksi rikkinäinen viesti ei jumita koko jonoa, ja virheen voi tutkia myöhemmin.</li>
+  <li><span class="label">Long polling:</span> kuluttaja odottaa viestejä yhteyden päässä, jolloin tyhjät vastaukset ja pyyntökulut vähenevät.</li>
+</ul>
+<p><span class="label">Ratkaisee:</span> kuormanpuskurointi (piikit eivät kaada tietokantaa), palveluiden irrotus, uudelleenyritykset ja se, että työntekijä voi olla hetken alhaalla ilman datan katoamista.</p>
+<p><span class="label">Hinta (suuntaa antava):</span> ensimmäiset miljoona pyyntöä kuukaudessa ilmaisia aina. Sen jälkeen noin 0,40 $ per miljoona pyyntöä Standard-jonossa. Käytännössä jonot ovat yleensä hyvin halpoja.</p>
+</div>
+
+<h3>Lambda-tapahtumalähteet</h3>
+<div class="card">
+<p><span class="label">Mitä se on:</span> Lambdalla on useita tapoja saada tapahtumia: suora kutsu (synkroninen, esim. API Gatewayn kautta), asynkroninen kutsu (esim. S3-ilmoitus, EventBridge-sääntö) ja event source mapping, joka lukee SQS-, Kinesis-, DynamoDB Streams- tai MSK-lähteitä ja toimittaa niistä eriä (batch) funktiolle.</p>
+<p><span class="label">Liittyy muihin:</span> SQS, Kinesis, DynamoDB Streams, S3-tapahtumat, EventBridge, API Gateway.</p>
+<p><span class="label">Ratkaisee:</span> Lambdalle ei tarvitse kirjoittaa pollausluuppia. Lambda skaalautuu lähteen mukaan, ja virheelliset erät voidaan ohjata DLQ:hun tai bisect-toiminnolla pienempiin osiin.</p>
+<p><span class="label">Hinta:</span> Lambda-hinta (pyynnöt ja GB-sekunnit) per käsittely, sekä lähteen oma hinta (SQS, Kinesis jne.). Aina-ilmaista tasoa ks. Lambda-osio.</p>
+</div>
+
+<h3>Amazon Kinesis Data Streams ja Data Firehose</h3>
+<div class="card">
+<p><span class="label">Mitä se on:</span> Kinesis Data Streams on suoratoistopalvelu, jossa tapahtumat ovat järjestettyjä shardeihin ja säilyvät streamissä (oletuksena 24 h, enintään 365 pv). Monta kuluttajaa voi lukea samaa dataa itsenäisesti. Firehose on "kuljeta ja tallenna" -palvelu, joka kirjoittaa striimin S3:een, Redshiftiin tai OpenSearchiin ilman omaa koodia, usein Parquet-muodossa.</p>
+<p><span class="label">Liittyy muihin:</span> Lambda (striimin kuluttajana), Glue ja Athena (datan kysely S3:sta), S3 (data lake), Managed Service for Apache Flink (reaaliaikainen käsittely), CloudWatch.</p>
+<p><span class="label">Ratkaisee:</span> suuren määrän laitedataa, klikkausvirtoja tai lokeja reaaliajassa. Tyypillinen data engineering -malli: Kinesis → Firehose → S3 Parquet → Athena. Myös se, että useat kuluttajat tarvitsevat samaa dataa eri tahtiin.</p>
+<p><span class="label">Hinta (suuntaa antava):</span> Data Streams maksaa shardeista (noin 11 $/kk per shard provisioned-tilassa, lisäksi siirrot). Firehose maksaa per ingestoitu GB, noin 0,03 $/GB. Kinesis ei ole ilmainen, joten kokeilun jälkeen sammuta se.</p>
+</div>
+
+<h3>Amazon MSK (Managed Streaming for Apache Kafka)</h3>
+<div class="card">
+<p><span class="label">Mitä se on:</span> Hallittu Apache Kafka -klusteri. Kafka on suosittu, mutta operoinnissaan raskas, ja MSK ottaa brokerit, päivitykset ja replikoinnin hoitaakseen. Ohjelmointirajapinta on sama kuin avoimessa Kafkassa, joten kaikki Kafka-työkalut ja -kirjastot toimivat.</p>
+<p><span class="label">Liittyy muihin:</span> Lambda (MSK event source mapping), Kafka Connect (esim. tietokantamuutosten striimaus), MSK Connect, Glue Schema Registry, Flink.</p>
+<p><span class="label">Ratkaisee:</span> kun tarvitset Kafkan semantiikkaa (pitkä säilytys, kompaktointi, avain-pohjainen järjestys, laaja ekosysteemi) tai tiimi jo osaa Kafkan. Muuten Kinesis tai SQS on yleensä yksinkertaisempi.</p>
+<p><span class="label">Hinta (suuntaa antava):</span> maksat brokereista tunneittain, vähintään kaksi tai kolme brokeria. Pienikin klusteri maksaa usein useita satoja dollareita kuukaudessa. Tämä tekee MSK:sta kalliin kehitykseen. Serverless-versio on olemassa, mutta sekin on kalliimpi kuin pienet SQS-jonot.</p>
+</div>
+
+<h3>AWS Step Functions</h3>
+<div class="card">
+<p><span class="label">Mitä se on:</span> Tilakone (state machine), joka orkestroi useita vaiheita: Lambdoja, ECS-tehtäviä, API-kutsuja ja muita palveluita. Määritys on JSON tai YAML (Amazon States Language), ja siinä on valmiit uudelleenyritykset, haarautumiset, rinnakkaisajo ja virheenkäsittely.</p>
+<p><span class="label">Liittyy muihin:</span> Lambda, ECS, EventBridge (käynnistys), SQS ja SNS, DynamoDB, Glue-työt, Athena.</p>
+<p><span class="label">Ratkaisee:</span> monivaiheiset prosessit, joissa pitää tietää missä vaiheessa mennään. Esim. tilauksen käsittely: maksu → varastovaraus → toimitus → ilmoitus, ja jos maksu epäonnistuu, kompensoiva toiminta ajetaan. Ilman tätä logiikka päätyy koodiin, joka on vaikea jäljittää.</p>
+<p><span class="label">Hinta (suuntaa antava):</span> Standard-tilassa noin 0,025 $ tuhatta tilasiirtymää kohden. Ilmaisia siirtymiä on 4 000 kuukaudessa aina. Express-tila on halvempi suurelle, lyhytkestoiselle kuormalle.</p>
+</div>
+
+<h3>Amazon EventBridge Pipes</h3>
+<div class="card">
+<p><span class="label">Mitä se on:</span> Putki lähteen ja kohteen välillä. Esimerkiksi DynamoDB Streams → suodatus → Step Functions tai SQS → muunnos → EventBridge-väylä ilman erillistä välikoodia.</p>
+<p><span class="label">Ratkaisee:</span> yksinkertaiset integraatiot, joissa halutaan vain suodatus ja muunnos. Jos logiikkaa on paljon, Lambda on parempi.</p>
+</div>
+
+<h3>DynamoDB Streams ja S3-tapahtumailmoitukset</h3>
+<div class="card">
+<p><span class="label">Mitä ne ovat:</span> DynamoDB Streams julkaisee taulun muutokset (lisäys, muokkaus, poisto) järjestyksessä. S3-tapahtumat kertovat, kun objekti luodaan tai poistetaan, ja ne voivat kohdistua Lambdaan, SQS:ään, SNS:ään tai EventBridgeen.</p>
+<p><span class="label">Liittyy muihin:</span> Lambda, EventBridge, Kinesis (DynamoDB Streamsin voi kytkeä Kinesisiin), OpenSearch (indeksointi muutoksista).</p>
+<p><span class="label">Ratkaisee:</span> välimuistin päivitys, hakuindeksin ylläpito, muutosloki ja tiedoston käsittely heti latauksen jälkeen. Muutokset tulevat ilman, että sovellus kertoo niistä erikseen (eikä tarvitse muistaa kirjoittaa kahteen paikkaan).</p>
+<p><span class="label">Hinta:</span> DynamoDB Streams ei maksa erikseen, mutta lukuja laskutetaan normaalisti. S3-tapahtumista maksetaan kohteen (Lambda, SQS jne.) hinta.</p>
+</div>
+
+<h3>Mitä event-driven-järjestelmässä pitää muistaa</h3>
+<div class="tip">
+<ul class="purpose-list">
+  <li><span class="label">Vähintään kerran -toimitus:</span> useimmat palvelut voivat toimittaa saman viestin kahdesti. Käsittelijän on oltava <em>idempotentti</em>, eli kahdesti ajettuna lopputulos on sama. Käytä yksilöllistä viestitunnusta tarkistukseen.</li>
+  <li><span class="label">Järjestys:</span> Standard-jonot eivät takaa järjestystä. Jos käsittelyjärjestys on liiketoimintalogiikan kannalta tärkeä, käytä FIFO-jonoa tai järjestettyä stream-ratkaisua.</li>
+  <li><span class="label">Dead-letter-jono (DLQ):</span> määritä uudelleenyritysten rajat ja DLQ etenkin tuotantokäytössä. DLQ säilyttää viestit, joita ei saada käsiteltyä, jotta syy voidaan tutkia ja viestit voidaan käsitellä hallitusti uudelleen. Seuraa DLQ:n viestimäärää CloudWatch-hälytyksellä.</li>
+  <li><span class="label">Outbox-malli:</span> jos tietokantaan kirjoittaminen ja tapahtuman julkaisu pitää onnistua yhdessä, kirjoita tapahtuma samaan transaktioon outbox-tauluun, ja erillinen prosessi julkaisee sen. Näin tapahtuma ei katoa, jos julkaisu epäonnistuu.</li>
+  <li><span class="label">Tapahtuman muoto:</span> versioi skeema ja lisää tapahtumaan aikaleima ja tunniste. Muuten muutos tuottajassa rikkoo kuluttajat hiljaa.</li>
+  <li><span class="label">Havainnointi:</span> jokainen tapahtuma tarvitsee korrelaatio-ID:n, jotta ketjun voi seurata lokeista (X-Ray tai OpenTelemetry).</li>
+</ul>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="harjoitus">
+<h2 class="module-title">19. Kokoava harjoitus</h2>
+
+<div class="card">
+<p>Rakenna pieni Django- tai FastAPI-sovellus ja julkaise se AWS:ään. Tee kokonaisuus vaiheittain: tarkista jokaisen vaiheen toiminta ennen seuraavan lisäämistä.</p>
+<ol class="step-list">
+  <li><strong>Projektin perusta:</strong> luo Terraform-projekti, provider ja turvallinen S3-backend. Varmista, että <code>terraform init</code>, <code>validate</code> ja <code>plan</code> toimivat.</li>
+  <li><strong>Verkko:</strong> luo VPC, kaksi julkista aliverkkoa ALB:lle, yksityiset aliverkot RDS:lle ja Security Groupit, jotka sallivat vain tarvittavat yhteydet.</li>
+  <li><strong>Sovelluksen paketoiminen:</strong> rakenna Docker-image, luo ECR-repositorio ja julkaise image yksilöllisellä tagilla.</li>
+  <li><strong>Tietokanta ja salaisuudet:</strong> luo RDS PostgreSQL yksityiseen aliverkkoon, ota salasanan hallinta Secrets Manageriin ja varmista, että sovellus saa yhteyden tietokantaan.</li>
+  <li><strong>Sovelluksen ajaminen:</strong> luo ECS Fargate -task definition ja service, ALB sekä CloudWatch-lokiryhmä. Aloita yhdellä taskilla, lisää toinen vasta kun perusversio toimii.</li>
+  <li><strong>Havainnointi:</strong> toteuta sovellukseen toimiva <code>/health/</code>-päätepiste, määritä ALB:n health check ja luo 5xx-hälytys sekä sähköpostitilaus SNS:ään.</li>
+  <li><strong>Automatisoitu julkaisu:</strong> yhdistä GitHub Actions IAM-rooliin OIDC:llä, rajaa luottamus omaan repositorioon ja <code>main</code>-haaraan, julkaise image commit-SHA:lla ja päivitä ECS task definition.</li>
+  <li><strong>Siivous:</strong> tallenna tarvittavat havainnot, tarkista laskutus ja poista harjoituksen resurssit <code>terraform destroy</code>-komennolla. Huomaa, että erikseen säilytettäväksi jätetty state-bucket ei välttämättä poistu samalla.</li>
+</ol>
+
+<h3>Mistä tiedät, että harjoitus onnistui?</h3>
+<ul class="purpose-list">
+  <li>Sovellukseen pääsee ALB:n DNS-nimen kautta ja health check näyttää kohteet terveiksi.</li>
+  <li>Sovellus yhdistää RDS:ään ilman, että tietokanta on julkisesti saavutettavissa.</li>
+  <li>Kontin lokit näkyvät CloudWatch Logsissa ja virhehälytys voidaan testata.</li>
+  <li>GitHubin <code>main</code>-haaraan tehty muutos rakentaa uuden image-version ja päivittää ECS-palvelun.</li>
+  <li>Terraformin state on tallessa etäbackendissa, eikä salaisuuksia ole commitoitu repositorioon.</li>
+</ul>
+
+<h3>Tarkistuslista</h3>
+<table>
+  <tr><th>Kysymys</th><th>Vastaus, jonka pitäisi tulla mieleen</th></tr>
+  <tr><td>Miksi tietokanta on yksityisessä aliverkossa?</td><td>Sitä ei voi tavoittaa internetistä, ja pääsy rajataan Security Groupilla sovellukseen.</td></tr>
+  <tr><td>Miksi ECS-tehtävällä on kaksi roolia?</td><td>Execution role hakee imagen ja lokit, task role antaa sovellukselle oikeudet AWS-palveluihin.</td></tr>
+  <tr><td>Miksi tila on S3:ssa?</td><td>Jaettu, salattu ja versioitu tila, jonka samanaikainen käyttö voidaan lukita S3:n natiivilla lockfile-toiminnolla.</td></tr>
+  <tr><td>Miksi OIDC on parempi kuin AWS-avaimet CI:ssä?</td><td>Tokenit vanhenevat, eikä salaisuuksia tarvitse tallentaa repoon.</td></tr>
+  <tr><td>Mikä maksaa eniten kurssiversiossa?</td><td>ALB, Fargate-tehtävät ja RDS. Lisäksi julkiset IP-osoitteet ja unohtuneet resurssit (NAT, EIP, EBS-levyt).</td></tr>
+  <tr><td>Mikä on Fargaten ja EC2:n ero?</td><td>Fargatessa AWS hallitsee palvelimet, EC2:ssa hallitset itse käyttöjärjestelmän.</td></tr>
+</table>
+
+<div class="tip">
+<p><strong>Seuraava askel:</strong> Kun perusversio toimii, lisää esimerkiksi oma domain, HTTPS, yksityisiin aliverkkoihin siirretyt ECS-tehtävät, VPC endpoint -päätepisteet ja sovelluksen automatisoidut testit. Lisää ominaisuuksia yksi kerrallaan, jotta niiden vaikutus kustannuksiin ja arkkitehtuuriin on helppo ymmärtää.</p>
+</div>
+</section>
+
+<section id="sanasto">
+<h2 class="module-title">Pieni sanasto</h2>
+<div class="card">
+<table>
+  <tr><th>Käsite</th><th>Selitys tässä kurssissa</th></tr>
+  <tr><td>IaC</td><td>Infrastructure as Code: infrastruktuuri määritellään koodina, ei vain käsin konsolista.</td></tr>
+  <tr><td>State</td><td>Terraformin ylläpitämä tila siitä, mitä resursseja se hallitsee ja miten ne liittyvät määrityksiin.</td></tr>
+  <tr><td>Subnet</td><td>VPC:n IP-osoitealue, johon resurssien verkkoliittymät sijoitetaan.</td></tr>
+  <tr><td>Security Group</td><td>Verkkoliittymään liitetty tilallinen palomuuri.</td></tr>
+  <tr><td>ENI</td><td>Elastic Network Interface: virtuaalinen verkkoliittymä, jolla on yksityinen IP-osoite ja siihen liitetyt verkkosäännöt.</td></tr>
+  <tr><td>Image / container</td><td>Image on käynnistettävä paketti; container on siitä käynnissä oleva prosessiympäristö.</td></tr>
+  <tr><td>Task definition / task / service</td><td>Määrittely / käynnissä oleva tehtävä / haluttua tehtävämäärää ylläpitävä ECS-palvelu.</td></tr>
+  <tr><td>Target group</td><td>ALB:n kohdejoukko, jolle liikenne ohjataan ja jonka terveydentilaa seurataan.</td></tr>
+  <tr><td>OIDC</td><td>Tapa vaihtaa identiteettipalvelun myöntämä tunniste AWS:n lyhytikäisiin roolitunnuksiin ilman pitkäaikaista avainparia.</td></tr>
+  <tr><td>Idempotentti</td><td>Toiminto, jonka toistaminen ei muuta lopputulosta ensimmäisen onnistuneen suorituksen jälkeen.</td></tr>
+</table>
+</div>
+</section>
+
+<footer>
+  <p>Kurssi on tarkoitettu oppimiseen. Palveluiden ominaisuudet, hinnat ja käyttöehdot muuttuvat. Tarkista ennen käyttöönottoa tiedot AWS:n virallisesta dokumentaatiosta ja AWS Pricing Calculatorista. Koodiesimerkit ovat opetuksellisia lähtökohtia, eivät sellaisenaan tuotantovalmiita määrityksiä.</p>
+  <p class="small-note">Versio: 17.11.2026. Materiaali painottaa ymmärrettävää perusarkkitehtuuria; yksittäiset esimerkit on sovitettava oman sovelluksen, alueen ja turvallisuusvaatimusten mukaan.</p>
+</footer>
+
+</main>
+</div>
+</body>
+</html>
