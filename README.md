@@ -19,10 +19,10 @@ esimerkkejä ja harjoituksia itsenäisen opiskelun tueksi.
 Materiaalit voi avata suoraan selaimessa HTML-tiedostoina. PHP-pohjainen
 [etusivu](course-index.php) kokoaa materiaalit yhteen. Sen käyttämiseen
 tarvitaan PHP; muita riippuvuuksia ei ole. Käynnistä paikallinen palvelin
-projektin juurihakemistossa:
+projektin juurihakemistossa [käynnistysskriptillä](start-server.sh):
 
 ```sh
-php -S 127.0.0.1:8000
+./start-server.sh
 ```
 
 Siirry osoitteeseen <http://127.0.0.1:8000/course-index.php>. Palvelimen voi
