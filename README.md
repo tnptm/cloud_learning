@@ -1,5 +1,7 @@
 # Pilvikurssit
 
+[![Deploy to VPS](https://github.com/tnptm/cloud_learning/actions/workflows/deploy.yml/badge.svg)](https://github.com/tnptm/cloud_learning/actions/workflows/deploy.yml)
+
 Suomenkielisiä, tekoälyavusteisesti kehitettyjä oppimateriaaleja AWS:stä,
 DevOpsista ja Terraformista. Materiaalit kokoavat käsitteitä, käytännön
 esimerkkejä ja harjoituksia itsenäisen opiskelun tueksi.
