@@ -28,6 +28,8 @@ projektin juurihakemistossa [käynnistysskriptillä](start-server.sh):
 Siirry osoitteeseen <http://127.0.0.1:8000/course-index.php>. Palvelimen voi
 pysäyttää painamalla Ctrl+C. CSS-tiedostot ovat [css-hakemistossa](css/).
 
+Katso [DEPLOY.md](DEPLOY.md).
+
 ## Ennen harjoituksia
 
 AWS-resurssien käyttö voi aiheuttaa kustannuksia. Tarkista ajantasaiset hinnat
